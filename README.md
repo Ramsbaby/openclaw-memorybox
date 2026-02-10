@@ -8,15 +8,38 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
 
+## Origin Story
+
+This project was born from a real production incident.
+
+I run an OpenClaw agent 24/7 across 7 Discord channels with 48 cron jobs. As the agent learned and grew, `MEMORY.md` ballooned to 20KB+. Every session — every cron, every channel, every heartbeat — loaded all of it.
+
+Then one day, **context hit 100%**. Mid-conversation compaction started corrupting state. I tried to fix it by tweaking config — and crashed the gateway. Hard.
+
+That crash led me to build **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** — a 4-tier autonomous recovery system that detects failures and restores the gateway in ~30 seconds without human intervention.
+
+But self-healing treats the symptom, not the cause. The root cause was **memory bloat** — too much data loaded into every session. So I built MemoryBox: a hierarchical memory system that keeps MEMORY.md lean while preserving everything via tiered storage.
+
+**The full arc:**
+```
+Memory bloat (20KB+) → Context overflow → Config fix attempt → Gateway crash
+  → Built self-healing (recover from crashes)
+  → Built MemoryBox (prevent the bloat that caused it)
+  → Both open-sourced. Problem solved at both ends.
+```
+
 ## The Problem
 
 OpenClaw's default memory is flat: `MEMORY.md` + `memory/YYYY-MM-DD.md`. As your agent grows, MEMORY.md bloats to 20KB+ and gets loaded into **every session** — all channels, all crons, all the time.
 
+**What 20KB of memory actually costs:**
 ```
-Before: 20KB MEMORY.md × 55 sessions × 200 runs/day = 220MB/day wasted tokens
-After:   3.5KB MEMORY.md × 55 sessions × 200 runs/day =  38MB/day
-         ↳ 83% reduction, zero dependencies
+20KB MEMORY.md × 55 sessions × 200 runs/day = 220MB/day wasted tokens
+3.5KB MEMORY.md × 55 sessions × 200 runs/day =  38MB/day
+                                                 ↳ 83% reduction
 ```
+
+> **Honest note:** The 83% reduction applies to MEMORY.md specifically — roughly 5-15% of your total per-session token budget depending on conversation length. But in a 24/7 agent with dozens of crons firing daily, those savings compound fast. More importantly, it **prevents context overflow** — the real killer.
 
 ## The Solution
 
@@ -274,6 +297,17 @@ memorybox -m 8000 health               # Set 8KB as max target
 | Token savings | "80% claimed" | **83% measured** |
 | Production tested | Documentation only | **48 crons, 7 channels** |
 | Philosophy | Replace memory-core | **Extend memory-core** |
+
+## Companion Project: Self-Healing
+
+If MemoryBox prevents the crash, **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** recovers from it when it happens anyway.
+
+| Layer | Tool | What It Does |
+|-------|------|-------------|
+| Prevention | **MemoryBox** | Keeps memory lean → fewer context overflows |
+| Recovery | **Self-Healing** | 4-tier auto-recovery → gateway back in ~30s |
+
+Together they form a complete reliability stack for production OpenClaw agents. Both are zero-dependency and MIT licensed.
 
 ## Compatibility
 
