@@ -9,6 +9,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
 
+
+
+![MemoryBox Doctor Demo](assets/demo.gif)
+
 ## 30-Second Pitch
 
 Your OpenClaw agent's `MEMORY.md` grows every day. At some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow.
