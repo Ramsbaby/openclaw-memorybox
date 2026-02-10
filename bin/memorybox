@@ -1095,7 +1095,7 @@ cmd_doctor() {
   tmpfile=$(mktemp)
   find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
     grep "^[^#].\{30,\}" "$f" 2>/dev/null | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
-  done | grep -vE '^[\|\-\+\=\:[:space:]]+$' | grep -vE '^\`\`\`' | grep -vE '^\|.*\|.*\|.*\|' | grep -vE '^[┌└├┐┘┤┬┴┼─│━]+' | grep -vE '^(https?://|curl |if \[|fi$)' | sort | uniq -d | wc -l > "$tmpfile"
+  done | { grep -vE '^[\|\-\+\=\:[:space:]]+$' || true; } | { grep -vE '^\`\`\`' || true; } | { grep -vE '^\|.*\|.*\|.*\|' || true; } | { grep -vE '^[┌└├┐┘┤┬┴┼─│━]+' || true; } | { grep -vE '^(https?://|curl |if \[|fi$)' || true; } | sort | uniq -d | wc -l > "$tmpfile"
 
   local dup_count
   dup_count=$(cat "$tmpfile")
