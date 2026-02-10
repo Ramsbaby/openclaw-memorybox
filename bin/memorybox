@@ -737,9 +737,9 @@ cmd_stale() {
 
   if [[ -f "$MEMORY_FILE" ]]; then
     local outdated=0
-    grep -n "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" "$MEMORY_FILE" | while IFS=: read -r linenum content; do
+    { grep -n "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" "$MEMORY_FILE" 2>/dev/null || true; } | while IFS=: read -r linenum content; do
       # Extract dates
-      echo "$content" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | while read -r ref_date; do
+      { echo "$content" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" || true; } | while read -r ref_date; do
         if [[ "$ref_date" < "2026-01-01" ]]; then
           echo -e "   ${YELLOW}Line ${linenum}: ${ref_date}${NC} — ${content:0:60}..."
           outdated=$((outdated + 1))
@@ -748,7 +748,7 @@ cmd_stale() {
     done
 
     # Check for "Updated" timestamps older than 7 days
-    grep -in "updated\|갱신\|업데이트" "$MEMORY_FILE" 2>/dev/null | while IFS=: read -r linenum content; do
+    { grep -in "updated\|갱신\|업데이트" "$MEMORY_FILE" 2>/dev/null || true; } | while IFS=: read -r linenum content; do
       local ref_date
       ref_date=$(echo "$content" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -1 || true)
       if [[ -n "$ref_date" ]]; then
