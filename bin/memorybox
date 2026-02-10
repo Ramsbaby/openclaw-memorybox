@@ -37,6 +37,8 @@ ${BOLD}Commands:${NC}
   ${GREEN}dedupe${NC}     Find duplicate content across memory files
   ${GREEN}stale${NC}      Find outdated/stale content and date references
   ${GREEN}suggest${NC}    Smart suggestions for memory improvement
+  ${GREEN}init${NC}       Initialize 3-Tier structure in a workspace
+  ${GREEN}doctor${NC}     Full diagnostic (health + dedupe + stale + suggest)
 
 ${BOLD}Options:${NC}
   -w, --workspace PATH    Set workspace path (default: \$OPENCLAW_WORKSPACE or ~/openclaw)
@@ -69,12 +71,11 @@ done
 
 COMMAND="${1:-help}"
 shift 2>/dev/null || true
-SUBCOMMAND="${1:-}"
-shift 2>/dev/null || true
 
-# Allow workspace as positional arg
-if [[ -n "${1:-}" && -d "${1:-}" ]]; then
+# Allow workspace as positional arg after command
+if [[ -n "${1:-}" && "${1:-}" != -* ]]; then
   WORKSPACE="$1"
+  shift 2>/dev/null || true
 fi
 
 MEMORY_FILE="$WORKSPACE/MEMORY.md"
@@ -927,6 +928,233 @@ cmd_suggest() {
 }
 
 # ─────────────────────────────────────────
+# INIT: Initialize 3-Tier structure
+# ─────────────────────────────────────────
+cmd_init() {
+  echo -e "${BOLD}🧠 MemoryBox Init${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${DIM}Workspace: $WORKSPACE${NC}"
+  echo ""
+
+  # Create workspace if needed
+  if [[ ! -d "$WORKSPACE" ]]; then
+    echo -e "${YELLOW}Workspace not found. Create it? [Y/n]${NC}"
+    read -rp "" answer
+    case "$answer" in
+      n|N) echo "Aborted."; exit 0 ;;
+      *) mkdir -p "$WORKSPACE" ;;
+    esac
+  fi
+
+  # Create directory structure
+  local dirs=("memory" "memory/domains" "memory/projects" "memory/drafts" "memory/reports" "memory/incidents" "memory/archive")
+  local created=0
+
+  for d in "${dirs[@]}"; do
+    if [[ ! -d "$WORKSPACE/$d" ]]; then
+      mkdir -p "$WORKSPACE/$d"
+      echo -e "  ${GREEN}+${NC} $d/"
+      created=$((created + 1))
+    else
+      echo -e "  ${DIM}✓${NC} ${DIM}$d/ (exists)${NC}"
+    fi
+  done
+  echo ""
+
+  # Create MEMORY.md from template if not exists
+  if [[ ! -f "$MEMORY_FILE" ]]; then
+    local template_dir
+    template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+    if [[ -f "$template_dir/MEMORY.md.template" ]]; then
+      cp "$template_dir/MEMORY.md.template" "$MEMORY_FILE"
+      echo -e "  ${GREEN}+${NC} MEMORY.md (from template)"
+    else
+      cat > "$MEMORY_FILE" << 'TMPL'
+# Long-term Memory
+
+> Core facts only. Target: ≤10KB. Loaded by every session.
+> Detailed reference → memory/domains/*.md (use memory_search)
+
+## Critical Rules
+
+## Owner Profile
+
+## System Preferences
+
+## Communication Style
+
+## Important Decisions
+
+## Notes
+- Memory files: `memory/YYYY-MM-DD.md` (daily logs)
+- Domain files: `memory/domains/*.md` (topic reference)
+- Archive: `memory/archive/` (old data)
+TMPL
+      echo -e "  ${GREEN}+${NC} MEMORY.md (default template)"
+    fi
+    created=$((created + 1))
+  else
+    echo -e "  ${DIM}✓${NC} ${DIM}MEMORY.md (exists, $(wc -c < "$MEMORY_FILE" | tr -d ' ') bytes)${NC}"
+  fi
+
+  # Create domain templates if not exist
+  for domain in persona decisions milestones; do
+    local target="$MEMORY_DIR/domains/${domain}.md"
+    if [[ ! -f "$target" ]]; then
+      local template_dir
+      template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+      local tpl="$template_dir/memory/domains/${domain}.md.template"
+      if [[ -f "$tpl" ]]; then
+        cp "$tpl" "$target"
+      else
+        echo "# ${domain^}" > "$target"
+        echo "" >> "$target"
+        echo "> Searchable via memory_search." >> "$target"
+      fi
+      echo -e "  ${GREEN}+${NC} memory/domains/${domain}.md"
+      created=$((created + 1))
+    else
+      echo -e "  ${DIM}✓${NC} ${DIM}memory/domains/${domain}.md (exists)${NC}"
+    fi
+  done
+
+  # Create memory README
+  if [[ ! -f "$MEMORY_DIR/README.md" ]]; then
+    local template_dir
+    template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+    if [[ -f "$template_dir/memory/README.md" ]]; then
+      cp "$template_dir/memory/README.md" "$MEMORY_DIR/README.md"
+    fi
+    echo -e "  ${GREEN}+${NC} memory/README.md"
+    created=$((created + 1))
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  if [[ $created -gt 0 ]]; then
+    echo -e "${GREEN}✅ Created ${created} items. 3-Tier structure ready!${NC}"
+  else
+    echo -e "${GREEN}✅ Already initialized — nothing to create.${NC}"
+  fi
+  echo ""
+  echo "Next: Run 'memorybox health' to verify."
+}
+
+# ─────────────────────────────────────────
+# DOCTOR: Full diagnostic
+# ─────────────────────────────────────────
+cmd_doctor() {
+  validate_workspace
+
+  echo -e "${BOLD}🩺 MemoryBox Doctor — Full Diagnostic${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${DIM}Workspace: $WORKSPACE${NC}"
+  echo -e "${DIM}$(date '+%Y-%m-%d %H:%M:%S')${NC}"
+  echo ""
+
+  # 1. Health
+  echo -e "${BOLD}[1/4] Health Check${NC}"
+  echo ""
+  cmd_health 2>/dev/null | grep -E "✓|✗|△|Score" | sed 's/^/  /'
+  echo ""
+
+  # 2. Analyze (brief)
+  echo -e "${BOLD}[2/4] Size Analysis${NC}"
+  echo ""
+  if [[ -f "$MEMORY_FILE" ]]; then
+    local size
+    size=$(wc -c < "$MEMORY_FILE")
+    local pct=$((size * 100 / MAX_MEMORY_BYTES))
+    echo -e "  MEMORY.md: ${size} bytes (${pct}%)"
+
+    local domain_size=0
+    if [[ -d "$MEMORY_DIR/domains" ]]; then
+      domain_size=$(find "$MEMORY_DIR/domains" -name "*.md" -exec cat {} + 2>/dev/null | wc -c | tr -d ' ')
+    fi
+    echo -e "  domains/: ${domain_size} bytes"
+    echo -e "  Total managed: $((size + domain_size)) bytes"
+
+    if [[ $size -gt $MAX_MEMORY_BYTES ]]; then
+      echo -e "  ${RED}→ MEMORY.md over limit! Run: memorybox split${NC}"
+    fi
+  fi
+  echo ""
+
+  # 3. Duplicates (brief)
+  echo -e "${BOLD}[3/4] Duplicate Check${NC}"
+  echo ""
+
+  local tmpfile
+  tmpfile=$(mktemp)
+  find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
+    grep "^[^#].\{30,\}" "$f" 2>/dev/null | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
+  done | sort | uniq -d | wc -l > "$tmpfile"
+
+  local dup_count
+  dup_count=$(cat "$tmpfile")
+  rm -f "$tmpfile"
+
+  if [[ $dup_count -gt 0 ]]; then
+    echo -e "  ${YELLOW}⚠️  ${dup_count} potential duplicate lines${NC}"
+    echo -e "  ${DIM}Run: memorybox dedupe${NC}"
+  else
+    echo -e "  ${GREEN}✅ No duplicates${NC}"
+  fi
+  echo ""
+
+  # 4. Suggestions (brief)
+  echo -e "${BOLD}[4/4] Suggestions${NC}"
+  echo ""
+
+  local sug_count=0
+
+  # Check for large sections
+  if [[ -f "$MEMORY_FILE" ]]; then
+    local large_sections=0
+    local current_section=""
+    local current_size=0
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^##[[:space:]] ]]; then
+        if [[ $current_size -gt 2000 && -n "$current_section" ]]; then
+          large_sections=$((large_sections + 1))
+        fi
+        current_section="${line#\#\# }"
+        current_size=${#line}
+      else
+        current_size=$((current_size + ${#line} + 1))
+      fi
+    done < "$MEMORY_FILE"
+    if [[ $current_size -gt 2000 && -n "$current_section" ]]; then
+      large_sections=$((large_sections + 1))
+    fi
+
+    if [[ $large_sections -gt 0 ]]; then
+      echo -e "  ${YELLOW}📌 ${large_sections} section(s) could be split to domains/${NC}"
+      sug_count=$((sug_count + large_sections))
+    fi
+  fi
+
+  # Check old logs
+  local old_count
+  old_count=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" -mtime +${ARCHIVE_DAYS} 2>/dev/null | wc -l | tr -d ' ')
+  if [[ $old_count -gt 0 ]]; then
+    echo -e "  ${YELLOW}🗄️  ${old_count} daily logs ready for archiving${NC}"
+    sug_count=$((sug_count + 1))
+  fi
+
+  if [[ $sug_count -eq 0 ]]; then
+    echo -e "  ${GREEN}✨ No issues found${NC}"
+  else
+    echo -e ""
+    echo -e "  ${DIM}Run: memorybox suggest (for details)${NC}"
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${DIM}Full commands: analyze, split, dedupe, stale, suggest${NC}"
+}
+
+# ─────────────────────────────────────────
 # Command dispatch
 # ─────────────────────────────────────────
 case "$COMMAND" in
@@ -938,6 +1166,8 @@ case "$COMMAND" in
   dedupe)   cmd_dedupe ;;
   stale)    cmd_stale ;;
   suggest)  cmd_suggest ;;
+  init)     cmd_init ;;
+  doctor)   cmd_doctor ;;
   help|-h)  usage ;;
   *)
     echo -e "${RED}Unknown command: $COMMAND${NC}"

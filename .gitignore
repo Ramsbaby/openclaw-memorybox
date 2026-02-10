@@ -1,0 +1,34 @@
+# MemoryBox .gitignore
+# Prevent accidental commit of personal OpenClaw data
+
+# Personal memory files (NEVER commit these)
+MEMORY.md
+memory/
+!templates/memory/
+
+# OpenClaw workspace files
+SOUL.md
+USER.md
+AGENTS.md
+TOOLS.md
+HEARTBEAT.md
+IDENTITY.md
+SESSION-STATE.md
+BOOTSTRAP.md
+
+# State files
+*.json
+!package.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
