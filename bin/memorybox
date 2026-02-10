@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="2.0.0"
 DEFAULT_WORKSPACE="${OPENCLAW_WORKSPACE:-$HOME/openclaw}"
 MAX_MEMORY_BYTES=10000
 WARN_THRESHOLD=80  # percent
@@ -584,14 +584,20 @@ cmd_dedupe() {
   tmpfile=$(mktemp)
 
   # Collect all non-empty, non-header lines from memory files
+  # Filter out common false positives: table separators, code fences, list markers, URLs, short content
   find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
     grep -n "^[^#].\{30,\}" "$f" 2>/dev/null | while IFS=: read -r linenum content; do
       # Normalize whitespace
       local normalized
       normalized=$(echo "$content" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-      if [[ -n "$normalized" ]]; then
-        echo "${normalized}|$(basename "$f"):${linenum}" >> "$tmpfile"
-      fi
+      # Skip common patterns that aren't real duplicates
+      [[ -z "$normalized" ]] && continue
+      [[ "$normalized" =~ ^[\|\-\+\=\:[:space:]]+$ ]] && continue  # table separators
+      [[ "$normalized" =~ ^\`\`\` ]] && continue                    # code fences
+      [[ "$normalized" =~ ^[\-\*]\ \*\* ]] && continue              # bold list items (common template)
+      [[ "$normalized" =~ ^[\-\*\>[:space:]]+$ ]] && continue       # empty list/quote markers
+      [[ "$normalized" =~ ^\|.*\|.*\|.*\| ]] && continue            # table rows
+      echo "${normalized}|$(basename "$f"):${linenum}" >> "$tmpfile"
     done
   done
 
@@ -600,9 +606,13 @@ cmd_dedupe() {
     grep -n "^[^#].\{30,\}" "$MEMORY_FILE" 2>/dev/null | while IFS=: read -r linenum content; do
       local normalized
       normalized=$(echo "$content" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-      if [[ -n "$normalized" ]]; then
-        echo "${normalized}|MEMORY.md:${linenum}" >> "$tmpfile"
-      fi
+      [[ -z "$normalized" ]] && continue
+      [[ "$normalized" =~ ^[\|\-\+\=\:[:space:]]+$ ]] && continue
+      [[ "$normalized" =~ ^\`\`\` ]] && continue
+      [[ "$normalized" =~ ^[\-\*]\ \*\* ]] && continue
+      [[ "$normalized" =~ ^[\-\*\>[:space:]]+$ ]] && continue
+      [[ "$normalized" =~ ^\|.*\|.*\|.*\| ]] && continue
+      echo "${normalized}|MEMORY.md:${linenum}" >> "$tmpfile"
     done
   fi
 
@@ -1050,13 +1060,13 @@ cmd_doctor() {
   echo ""
 
   # 1. Health
-  echo -e "${BOLD}[1/4] Health Check${NC}"
+  echo -e "${BOLD}[1/5] Health Check${NC}"
   echo ""
   cmd_health 2>/dev/null | grep -E "✓|✗|△|Score" | sed 's/^/  /'
   echo ""
 
   # 2. Analyze (brief)
-  echo -e "${BOLD}[2/4] Size Analysis${NC}"
+  echo -e "${BOLD}[2/5] Size Analysis${NC}"
   echo ""
   if [[ -f "$MEMORY_FILE" ]]; then
     local size
@@ -1078,14 +1088,14 @@ cmd_doctor() {
   echo ""
 
   # 3. Duplicates (brief)
-  echo -e "${BOLD}[3/4] Duplicate Check${NC}"
+  echo -e "${BOLD}[3/5] Duplicate Check${NC}"
   echo ""
 
   local tmpfile
   tmpfile=$(mktemp)
   find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
     grep "^[^#].\{30,\}" "$f" 2>/dev/null | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
-  done | sort | uniq -d | wc -l > "$tmpfile"
+  done | grep -vE '^[\|\-\+\=\:[:space:]]+$' | grep -vE '^\`\`\`' | grep -vE '^\|.*\|.*\|.*\|' | grep -vE '^[┌└├┐┘┤┬┴┼─│━]+' | grep -vE '^(https?://|curl |if \[|fi$)' | sort | uniq -d | wc -l > "$tmpfile"
 
   local dup_count
   dup_count=$(cat "$tmpfile")
@@ -1099,8 +1109,35 @@ cmd_doctor() {
   fi
   echo ""
 
-  # 4. Suggestions (brief)
-  echo -e "${BOLD}[4/4] Suggestions${NC}"
+  # 4. Stale Check (brief)
+  echo -e "${BOLD}[4/5] Stale Content${NC}"
+  echo ""
+
+  local stale_count=0
+  if [[ -d "$MEMORY_DIR/domains" ]]; then
+    while IFS= read -r f; do
+      local mod_days
+      if [[ "$(uname)" == "Darwin" ]]; then
+        mod_days=$(( ( $(date +%s) - $(stat -f %m "$f") ) / 86400 ))
+      else
+        mod_days=$(( ( $(date +%s) - $(stat -c %Y "$f") ) / 86400 ))
+      fi
+      if [[ $mod_days -gt 60 ]]; then
+        stale_count=$((stale_count + 1))
+      fi
+    done < <(find "$MEMORY_DIR/domains" -name "*.md" 2>/dev/null)
+  fi
+
+  if [[ $stale_count -gt 0 ]]; then
+    echo -e "  ${YELLOW}⏰ ${stale_count} domain file(s) unchanged for 60+ days${NC}"
+    echo -e "  ${DIM}Run: memorybox stale${NC}"
+  else
+    echo -e "  ${GREEN}✅ All content is fresh${NC}"
+  fi
+  echo ""
+
+  # 5. Suggestions (brief)
+  echo -e "${BOLD}[5/5] Suggestions${NC}"
   echo ""
 
   local sug_count=0
