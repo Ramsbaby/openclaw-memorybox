@@ -34,6 +34,9 @@ ${BOLD}Commands:${NC}
   ${GREEN}archive${NC}    Move old daily logs (${ARCHIVE_DAYS}+ days) to archive/
   ${GREEN}report${NC}     Generate before/after impact report
   ${GREEN}health${NC}     Quick health check (size, structure, recommendations)
+  ${GREEN}dedupe${NC}     Find duplicate content across memory files
+  ${GREEN}stale${NC}      Find outdated/stale content and date references
+  ${GREEN}suggest${NC}    Smart suggestions for memory improvement
 
 ${BOLD}Options:${NC}
   -w, --workspace PATH    Set workspace path (default: \$OPENCLAW_WORKSPACE or ~/openclaw)
@@ -65,6 +68,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 COMMAND="${1:-help}"
+shift 2>/dev/null || true
+SUBCOMMAND="${1:-}"
 shift 2>/dev/null || true
 
 # Allow workspace as positional arg
@@ -559,6 +564,369 @@ cmd_health() {
 }
 
 # ─────────────────────────────────────────
+# DEDUPE: Find duplicate/similar content
+# ─────────────────────────────────────────
+cmd_dedupe() {
+  validate_workspace
+
+  echo -e "${BOLD}🔍 MemoryBox Duplicate Detector${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  local found=0
+
+  # Method 1: Exact line duplicates across files
+  echo -e "${BOLD}1. Exact Duplicate Lines${NC}"
+  echo ""
+
+  local tmpfile
+  tmpfile=$(mktemp)
+
+  # Collect all non-empty, non-header lines from memory files
+  find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
+    grep -n "^[^#].\{30,\}" "$f" 2>/dev/null | while IFS=: read -r linenum content; do
+      # Normalize whitespace
+      local normalized
+      normalized=$(echo "$content" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+      if [[ -n "$normalized" ]]; then
+        echo "${normalized}|$(basename "$f"):${linenum}" >> "$tmpfile"
+      fi
+    done
+  done
+
+  # Also check MEMORY.md
+  if [[ -f "$MEMORY_FILE" ]]; then
+    grep -n "^[^#].\{30,\}" "$MEMORY_FILE" 2>/dev/null | while IFS=: read -r linenum content; do
+      local normalized
+      normalized=$(echo "$content" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+      if [[ -n "$normalized" ]]; then
+        echo "${normalized}|MEMORY.md:${linenum}" >> "$tmpfile"
+      fi
+    done
+  fi
+
+  # Find duplicates
+  local dup_count=0
+  sort "$tmpfile" | cut -d'|' -f1 | uniq -d | head -20 | while read -r dup_line; do
+    dup_count=$((dup_count + 1))
+    local short_line="${dup_line:0:60}"
+    echo -e "   ${YELLOW}⚠️  \"${short_line}...\"${NC}"
+    grep -F -- "$dup_line" "$tmpfile" | cut -d'|' -f2 | while read -r loc; do
+      echo -e "      ${DIM}→ ${loc}${NC}"
+    done
+    echo ""
+  done
+
+  if [[ $dup_count -eq 0 ]]; then
+    echo -e "   ${GREEN}✅ No exact duplicates found${NC}"
+  fi
+  echo ""
+
+  # Method 2: Similar section headers
+  echo -e "${BOLD}2. Similar Section Headers${NC}"
+  echo ""
+
+  local headers_file
+  headers_file=$(mktemp)
+
+  # Collect all ## headers
+  find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
+    grep -n "^## " "$f" 2>/dev/null | while IFS=: read -r linenum header; do
+      echo "$(basename "$f"):${linenum}|${header}" >> "$headers_file"
+    done
+  done
+
+  if [[ -f "$MEMORY_FILE" ]]; then
+    grep -n "^## " "$MEMORY_FILE" 2>/dev/null | while IFS=: read -r linenum header; do
+      echo "MEMORY.md:${linenum}|${header}" >> "$headers_file"
+    done
+  fi
+
+  # Find headers that appear in multiple files
+  sort "$headers_file" | cut -d'|' -f2 | sort | uniq -d | while read -r dup_header; do
+    echo -e "   ${YELLOW}⚠️  \"${dup_header}\" appears in:${NC}"
+    grep -F -- "$dup_header" "$headers_file" | cut -d'|' -f1 | while read -r loc; do
+      echo -e "      ${DIM}→ ${loc}${NC}"
+    done
+    echo ""
+    found=$((found + 1))
+  done
+
+  if [[ $found -eq 0 ]]; then
+    echo -e "   ${GREEN}✅ No duplicate headers found${NC}"
+  fi
+
+  # Method 3: Files with similar names
+  echo ""
+  echo -e "${BOLD}3. Potentially Redundant Files${NC}"
+  echo ""
+
+  local similar=0
+  find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" 2>/dev/null | while read -r f; do
+    local bn
+    bn=$(basename "$f" .md)
+    # Check for files with same base name in different dirs
+    local matches
+    matches=$(find "$MEMORY_DIR" -name "${bn}*" -not -path "$f" -not -path "*/archive/*" 2>/dev/null | wc -l | tr -d ' ')
+    if [[ $matches -gt 0 ]]; then
+      echo -e "   ${YELLOW}⚠️  $(basename "$f") has ${matches} similar file(s):${NC}"
+      find "$MEMORY_DIR" -name "${bn}*" -not -path "$f" -not -path "*/archive/*" 2>/dev/null | while read -r m; do
+        echo -e "      ${DIM}→ ${m#$MEMORY_DIR/}${NC}"
+      done
+      echo ""
+      similar=$((similar + 1))
+    fi
+  done
+
+  if [[ $similar -eq 0 ]]; then
+    echo -e "   ${GREEN}✅ No potentially redundant files found${NC}"
+  fi
+
+  rm -f "$tmpfile" "$headers_file"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# STALE: Find stale/outdated content
+# ─────────────────────────────────────────
+cmd_stale() {
+  validate_workspace
+
+  echo -e "${BOLD}⏳ MemoryBox Staleness Detector${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  local today
+  today=$(date +%Y-%m-%d)
+  local today_epoch
+  today_epoch=$(date +%s)
+
+  # 1. Files not modified in 30+ days
+  echo -e "${BOLD}1. Stale Files (not modified in 30+ days)${NC}"
+  echo ""
+
+  local stale_count=0
+  while IFS= read -r f; do
+    local mod_date
+    mod_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$f" 2>/dev/null || stat -c "%y" "$f" 2>/dev/null | cut -d' ' -f1)
+    local days_old
+    if [[ "$(uname)" == "Darwin" ]]; then
+      local mod_epoch
+      mod_epoch=$(stat -f "%m" "$f")
+      days_old=$(( (today_epoch - mod_epoch) / 86400 ))
+    else
+      days_old=$(( ($(date +%s) - $(date -d "$mod_date" +%s)) / 86400 ))
+    fi
+
+    if [[ $days_old -gt 30 ]]; then
+      echo -e "   ${YELLOW}${days_old}d old${NC} — ${f#$MEMORY_DIR/}"
+      stale_count=$((stale_count + 1))
+    fi
+  done < <(find "$MEMORY_DIR" -name "*.md" -not -path "*/archive/*" -not -name "202?-??-??.md" 2>/dev/null)
+
+  if [[ $stale_count -eq 0 ]]; then
+    echo -e "   ${GREEN}✅ All files modified within 30 days${NC}"
+  else
+    echo ""
+    echo -e "   ${DIM}Consider archiving stale files: memorybox archive${NC}"
+  fi
+  echo ""
+
+  # 2. Date references in MEMORY.md that may be outdated
+  echo -e "${BOLD}2. Potentially Outdated Date References in MEMORY.md${NC}"
+  echo ""
+
+  if [[ -f "$MEMORY_FILE" ]]; then
+    local outdated=0
+    grep -n "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" "$MEMORY_FILE" | while IFS=: read -r linenum content; do
+      # Extract dates
+      echo "$content" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | while read -r ref_date; do
+        if [[ "$ref_date" < "2026-01-01" ]]; then
+          echo -e "   ${YELLOW}Line ${linenum}: ${ref_date}${NC} — ${content:0:60}..."
+          outdated=$((outdated + 1))
+        fi
+      done
+    done
+
+    # Check for "Updated" timestamps older than 7 days
+    grep -in "updated\|갱신\|업데이트" "$MEMORY_FILE" 2>/dev/null | while IFS=: read -r linenum content; do
+      local ref_date
+      ref_date=$(echo "$content" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -1 || true)
+      if [[ -n "$ref_date" ]]; then
+        local ref_epoch=0
+        if [[ "$(uname)" == "Darwin" ]]; then
+          ref_epoch=$(date -j -f "%Y-%m-%d" "$ref_date" +%s 2>/dev/null || echo 0)
+        else
+          ref_epoch=$(date -d "$ref_date" +%s 2>/dev/null || echo 0)
+        fi
+        if [[ $ref_epoch -gt 0 ]]; then
+          local days_ago=$(( (today_epoch - ref_epoch) / 86400 ))
+          if [[ $days_ago -gt 7 ]]; then
+            echo -e "   ${YELLOW}Line ${linenum}: \"Updated\" ${days_ago} days ago${NC}"
+            echo -e "   ${DIM}${content:0:70}${NC}"
+          fi
+        fi
+      fi
+    done
+  fi
+
+  echo ""
+
+  # 3. Domain files freshness
+  echo -e "${BOLD}3. Domain Files Freshness${NC}"
+  echo ""
+
+  if [[ -d "$MEMORY_DIR/domains" ]]; then
+    find "$MEMORY_DIR/domains" -name "*.md" 2>/dev/null | sort | while read -r f; do
+      local mod_date
+      local days_old
+      if [[ "$(uname)" == "Darwin" ]]; then
+        mod_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$f")
+        local mod_epoch
+        mod_epoch=$(stat -f "%m" "$f")
+        days_old=$(( (today_epoch - mod_epoch) / 86400 ))
+      else
+        mod_date=$(stat -c "%y" "$f" | cut -d' ' -f1)
+        days_old=$(( ($(date +%s) - $(date -d "$mod_date" +%s)) / 86400 ))
+      fi
+
+      local size
+      size=$(wc -c < "$f" | tr -d ' ')
+      local name
+      name=$(basename "$f")
+
+      if [[ $days_old -gt 14 ]]; then
+        echo -e "   ${YELLOW}⚠️  ${name}${NC} — ${days_old}d old, ${size} bytes"
+      else
+        echo -e "   ${GREEN}✓  ${name}${NC} — ${days_old}d old, ${size} bytes"
+      fi
+    done
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# SUGGEST: Smart suggestions for improvement
+# ─────────────────────────────────────────
+cmd_suggest() {
+  validate_workspace
+
+  echo -e "${BOLD}💡 MemoryBox Smart Suggestions${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  local suggestions=0
+
+  # 1. MEMORY.md sections that could be domain files
+  if [[ -f "$MEMORY_FILE" ]]; then
+    local total_bytes
+    total_bytes=$(wc -c < "$MEMORY_FILE")
+
+    # Find large sections
+    local current_section=""
+    local current_size=0
+    local section_line=0
+
+    while IFS= read -r line; do
+      section_line=$((section_line + 1))
+      if [[ "$line" =~ ^##[[:space:]] ]]; then
+        if [[ $current_size -gt 1500 && -n "$current_section" ]]; then
+          local slug
+          slug=$(echo "$current_section" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
+          local domain_file="$MEMORY_DIR/domains/${slug}.md"
+          if [[ ! -f "$domain_file" ]]; then
+            echo -e "  ${CYAN}📌 Split suggestion:${NC} \"${current_section}\" (${current_size} bytes)"
+            echo -e "     ${DIM}→ memory/domains/${slug}.md${NC}"
+            echo -e "     ${DIM}Replace with 2-line summary + reference in MEMORY.md${NC}"
+            echo ""
+            suggestions=$((suggestions + 1))
+          fi
+        fi
+        current_section="${line#\#\# }"
+        current_size=${#line}
+      else
+        current_size=$((current_size + ${#line} + 1))
+      fi
+    done < "$MEMORY_FILE"
+
+    # Check last section
+    if [[ $current_size -gt 1500 && -n "$current_section" ]]; then
+      local slug
+      slug=$(echo "$current_section" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
+      local domain_file="$MEMORY_DIR/domains/${slug}.md"
+      if [[ ! -f "$domain_file" ]]; then
+        echo -e "  ${CYAN}📌 Split suggestion:${NC} \"${current_section}\" (${current_size} bytes)"
+        echo -e "     ${DIM}→ memory/domains/${slug}.md${NC}"
+        echo ""
+        suggestions=$((suggestions + 1))
+      fi
+    fi
+  fi
+
+  # 2. Missing recommended domain files
+  echo -e "${BOLD}Recommended domain files:${NC}"
+  echo ""
+  for rec in "persona:Response style and formatting rules" \
+             "decisions:Past decisions and lessons learned" \
+             "milestones:Achievements and project history" \
+             "system-preferences:API keys, integrations, config"; do
+    local name="${rec%%:*}"
+    local desc="${rec#*:}"
+    if [[ -f "$MEMORY_DIR/domains/${name}.md" ]]; then
+      echo -e "  ${GREEN}✓${NC} domains/${name}.md — ${desc}"
+    else
+      echo -e "  ${YELLOW}✗${NC} domains/${name}.md — ${desc}"
+      echo -e "    ${DIM}Create with: memorybox split${NC}"
+      suggestions=$((suggestions + 1))
+    fi
+  done
+  echo ""
+
+  # 3. Check for unorganized files
+  local flat_count=0
+  if [[ -d "$MEMORY_DIR" ]]; then
+    while IFS= read -r f; do
+      local bn
+      bn=$(basename "$f")
+      [[ "$bn" =~ ^202[0-9]-[0-9]{2}-[0-9]{2}\.md$ ]] && continue
+      [[ "$bn" == "README.md" ]] && continue
+      flat_count=$((flat_count + 1))
+    done < <(find "$MEMORY_DIR" -maxdepth 1 -name "*.md" -not -name "README.md" 2>/dev/null)
+  fi
+
+  if [[ $flat_count -gt 0 ]]; then
+    echo -e "  ${YELLOW}📁 ${flat_count} files in memory/ root need organizing${NC}"
+    echo -e "     ${DIM}Run: memorybox analyze${NC}"
+    echo ""
+    suggestions=$((suggestions + 1))
+  fi
+
+  # 4. Archive suggestion
+  if [[ -d "$MEMORY_DIR" ]]; then
+    local old_count
+    old_count=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" -mtime +${ARCHIVE_DAYS} 2>/dev/null | wc -l | tr -d ' ')
+    if [[ $old_count -gt 0 ]]; then
+      echo -e "  ${YELLOW}🗄️  ${old_count} daily logs ready for archiving${NC}"
+      echo -e "     ${DIM}Run: memorybox archive${NC}"
+      echo ""
+      suggestions=$((suggestions + 1))
+    fi
+  fi
+
+  # Summary
+  if [[ $suggestions -eq 0 ]]; then
+    echo -e "  ${GREEN}✨ No suggestions — your memory is well-organized!${NC}"
+  else
+    echo -e "  ${CYAN}${suggestions} suggestion(s) to improve your memory structure${NC}"
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
 # Command dispatch
 # ─────────────────────────────────────────
 case "$COMMAND" in
@@ -567,6 +935,9 @@ case "$COMMAND" in
   archive)  cmd_archive ;;
   report)   cmd_report ;;
   health)   cmd_health ;;
+  dedupe)   cmd_dedupe ;;
+  stale)    cmd_stale ;;
+  suggest)  cmd_suggest ;;
   help|-h)  usage ;;
   *)
     echo -e "${RED}Unknown command: $COMMAND${NC}"
