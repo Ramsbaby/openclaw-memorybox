@@ -47,30 +47,30 @@ echo "🔀 Step 3: Organizing files..."
 MOVED=0
 
 # Move blog/marketing drafts
-for pattern in "blog-*" "devto-*" "reddit-*" "twitter-*" "hn-*" "marketing-*" "discord-*"; do
-  for f in "$MEMORY_DIR"/$pattern 2>/dev/null; do
+for pattern in blog-* devto-* reddit-* twitter-* hn-* marketing-* discord-*; do
+  for f in "$MEMORY_DIR"/$pattern; do
     [ -f "$f" ] || continue
     mv "$f" "$MEMORY_DIR/drafts/"
-    echo "   → drafts/$(basename $f)"
+    echo "   → drafts/$(basename "$f")"
     MOVED=$((MOVED + 1))
   done
 done
 
 # Move reports/audits
-for pattern in "self-review-*" "quality-check-*" "audit-*" "validation-*" "verification-*" "evaluation-*"; do
-  for f in "$MEMORY_DIR"/$pattern 2>/dev/null; do
+for pattern in self-review-* quality-check-* audit-* validation-* verification-* evaluation-*; do
+  for f in "$MEMORY_DIR"/$pattern; do
     [ -f "$f" ] || continue
     mv "$f" "$MEMORY_DIR/reports/"
-    echo "   → reports/$(basename $f)"
+    echo "   → reports/$(basename "$f")"
     MOVED=$((MOVED + 1))
   done
 done
 
 # Move incidents
-for f in "$MEMORY_DIR"/incident-* 2>/dev/null; do
+for f in "$MEMORY_DIR"/incident-*; do
   [ -f "$f" ] || continue
   mv "$f" "$MEMORY_DIR/incidents/"
-  echo "   → incidents/$(basename $f)"
+  echo "   → incidents/$(basename "$f")"
   MOVED=$((MOVED + 1))
 done
 

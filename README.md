@@ -3,8 +3,10 @@
 > Zero-dependency hierarchical memory system for OpenClaw agents.
 > No external APIs. No plugins. Just smarter file organization.
 
+[![CI](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/ci.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions)
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://github.com/openclaw/openclaw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
 
 ## The Problem
 
@@ -243,11 +245,16 @@ Add to your `AGENTS.md`:
 
 | Command | Description |
 |---------|-------------|
+| `memorybox init [path]` | Initialize 3-Tier structure (dirs + templates) |
 | `memorybox analyze [path]` | Deep analysis: section sizes, bloat detection, split suggestions |
 | `memorybox split [path]` | Interactive: move large sections to domain files |
 | `memorybox archive [path]` | Archive old daily logs (14+ days by default) |
 | `memorybox report [path]` | Before/after token savings report |
 | `memorybox health [path]` | Quick health score (0-100) with recommendations |
+| `memorybox dedupe [path]` | Find duplicate content across memory files |
+| `memorybox stale [path]` | Detect outdated content and stale references |
+| `memorybox suggest [path]` | Smart recommendations for improvement |
+| `memorybox doctor [path]` | Full diagnostic (health + size + dedupe + suggestions) |
 
 ### Options
 
