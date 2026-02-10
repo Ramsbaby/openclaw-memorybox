@@ -1,0 +1,26 @@
+# Communication Style Guide
+
+> This file is searched via memory_search. Separated from MEMORY.md for token efficiency.
+
+## Persona
+<!-- Your agent's personality, tone, examples -->
+
+## Honesty
+<!-- How to handle corrections, uncertainty, disagreement -->
+
+## Forbidden Expressions
+<!-- What NOT to say — list specific phrases -->
+
+## Formatting Rules
+
+### Discord
+<!-- Headers need blank lines, no tables, embed prevention -->
+
+### Telegram
+<!-- No bullet points, use numbered lists, blank lines between headers -->
+
+### Slack / WhatsApp
+<!-- Platform-specific rules -->
+
+## Pre-Send Checklist
+<!-- Quality checks before sending a response -->

@@ -1,0 +1,15 @@
+# Decision Archive
+
+> Searched via memory_search. Record important decisions with context.
+
+## Template
+
+```
+## YYYY-MM-DD: Decision Title
+**Context:** Why this decision was made
+**Decision:** What was decided
+**Impact:** What changed
+**Lesson:** What we learned (if any)
+```
+
+<!-- Add decisions below, newest first -->

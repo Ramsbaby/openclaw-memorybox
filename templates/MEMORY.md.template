@@ -1,0 +1,30 @@
+# Long-term Memory
+
+> Core facts only. Target: ≤10KB. Loaded by every session.
+> Detailed reference → memory/domains/*.md (use memory_search)
+
+## Critical Rules
+<!-- Your absolute rules that every session must know -->
+
+## Owner Profile
+<!-- Key facts: name, role, timezone, preferences -->
+
+## Active Projects
+<!-- Current work — update frequently, remove completed -->
+
+## System Preferences
+<!-- Essential config: APIs, models, integrations -->
+
+## Communication Style
+> Details: memory/domains/persona.md (memory_search)
+<!-- Brief summary: tone, forbidden expressions, platform rules -->
+
+## Important Decisions
+> Details: memory/domains/decisions.md (memory_search)
+<!-- Recent decisions with dates — keep last 10 -->
+
+## Notes
+- Memory files: `memory/YYYY-MM-DD.md` (daily logs)
+- Domain files: `memory/domains/*.md` (topic reference)
+- Archive: `memory/archive/` (old data)
+- Target: keep this file under 10KB
