@@ -706,15 +706,15 @@ cmd_stale() {
 
   local stale_count=0
   while IFS= read -r f; do
-    local mod_date
-    mod_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$f" 2>/dev/null || stat -c "%y" "$f" 2>/dev/null | cut -d' ' -f1)
-    local days_old
+    local days_old=0
     if [[ "$(uname)" == "Darwin" ]]; then
       local mod_epoch
-      mod_epoch=$(stat -f "%m" "$f")
+      mod_epoch=$(stat -f "%m" "$f" 2>/dev/null || echo 0)
       days_old=$(( (today_epoch - mod_epoch) / 86400 ))
     else
-      days_old=$(( ($(date +%s) - $(date -d "$mod_date" +%s)) / 86400 ))
+      local mod_epoch
+      mod_epoch=$(stat -c "%Y" "$f" 2>/dev/null || echo 0)
+      days_old=$(( (today_epoch - mod_epoch) / 86400 ))
     fi
 
     if [[ $days_old -gt 30 ]]; then
@@ -777,16 +777,15 @@ cmd_stale() {
 
   if [[ -d "$MEMORY_DIR/domains" ]]; then
     find "$MEMORY_DIR/domains" -name "*.md" 2>/dev/null | sort | while read -r f; do
-      local mod_date
-      local days_old
+      local days_old=0
       if [[ "$(uname)" == "Darwin" ]]; then
-        mod_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$f")
         local mod_epoch
-        mod_epoch=$(stat -f "%m" "$f")
+        mod_epoch=$(stat -f "%m" "$f" 2>/dev/null || echo 0)
         days_old=$(( (today_epoch - mod_epoch) / 86400 ))
       else
-        mod_date=$(stat -c "%y" "$f" | cut -d' ' -f1)
-        days_old=$(( ($(date +%s) - $(date -d "$mod_date" +%s)) / 86400 ))
+        local mod_epoch
+        mod_epoch=$(stat -c "%Y" "$f" 2>/dev/null || echo 0)
+        days_old=$(( (today_epoch - mod_epoch) / 86400 ))
       fi
 
       local size
