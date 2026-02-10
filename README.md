@@ -52,31 +52,92 @@ workspace/
 
 ## Quick Start
 
-### 1. Install (copy files to your workspace)
+### 1. Install
 
 ```bash
-# Clone this repo
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
+cd openclaw-memorybox
 
-# Copy templates to your OpenClaw workspace
-cp -r openclaw-memorybox/templates/memory/* ~/openclaw/memory/
-cp openclaw-memorybox/templates/MEMORY.md ~/openclaw/MEMORY.md.template
+# Make CLI available globally
+chmod +x bin/memorybox
+sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ```
 
-### 2. Organize Your Existing Memory
+### 2. Analyze Your Memory
 
 ```bash
-# Run the migration script (non-destructive, creates backup first)
-bash openclaw-memorybox/scripts/migrate.sh ~/openclaw
+memorybox analyze ~/openclaw
+```
+
+```
+🔍 MemoryBox Analysis
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 MEMORY.md
+   Size: 20,542 bytes (205% of 10000 target) 🚨 OVER LIMIT
+
+📊 Sections by Size
+
+   ████████ Investment Portfolio
+   4,200 bytes (23%) → suggest: memory/domains/investment-portfolio.md
+
+   ██████ Communication Style
+   3,100 bytes (17%) → suggest: memory/domains/communication-style.md
+
+   █████ System Preferences
+   2,800 bytes (15%) → suggest: memory/domains/system-preferences.md
+```
+
+### 3. Run Migration
+
+```bash
+# Non-destructive: creates backup first
+bash scripts/migrate.sh ~/openclaw
 ```
 
 The script:
 - Backs up current `MEMORY.md` to `memory/archive/`
 - Creates `memory/domains/` structure
 - Moves non-daily files to appropriate directories
-- Generates a slim `MEMORY.md` template
 
-### 3. Update AGENTS.md
+### 4. Split Large Sections (Interactive)
+
+```bash
+memorybox split ~/openclaw
+```
+
+```
+✂️  MemoryBox Split
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MEMORY.md: 20,542 bytes (target: 10000)
+Need to move: 10,542 bytes
+
+Section: Investment Portfolio
+Size: 4,200 bytes
+Target: memory/domains/investment-portfolio.md
+Move this section? [Y/n/s(kip all)] Y
+✅ Written to memory/domains/investment-portfolio.md
+```
+
+### 5. Check Health
+
+```bash
+memorybox health
+```
+
+```
+🏥 MemoryBox Health Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ MEMORY.md: 3,460 bytes (34%)
+  ✓ domains/: 5 files
+  ✓ Daily logs up to date
+  ✓ memory/ root is clean
+  ✓ archive/ exists
+
+  Health Score: 100/100 ✨ Excellent
+```
+
+### 6. Update AGENTS.md
 
 Add to your `AGENTS.md`:
 
@@ -176,6 +237,24 @@ Add to your `AGENTS.md`:
 **What:** Description
 **Links:** URLs
 **Impact:** Why it matters
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `memorybox analyze [path]` | Deep analysis: section sizes, bloat detection, split suggestions |
+| `memorybox split [path]` | Interactive: move large sections to domain files |
+| `memorybox archive [path]` | Archive old daily logs (14+ days by default) |
+| `memorybox report [path]` | Before/after token savings report |
+| `memorybox health [path]` | Quick health score (0-100) with recommendations |
+
+### Options
+
+```bash
+memorybox -w ~/my-workspace analyze    # Custom workspace path
+memorybox -d 7 archive                 # Archive logs older than 7 days
+memorybox -m 8000 health               # Set 8KB as max target
 ```
 
 ## Why Not elite-longterm-memory?

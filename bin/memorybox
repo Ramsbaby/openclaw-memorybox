@@ -1,0 +1,576 @@
+#!/bin/bash
+# memorybox — Zero-dependency memory management CLI for OpenClaw
+# Usage: memorybox <command> [workspace_path]
+# Commands: analyze, split, archive, report, health
+
+set -euo pipefail
+
+VERSION="1.0.0"
+DEFAULT_WORKSPACE="${OPENCLAW_WORKSPACE:-$HOME/openclaw}"
+MAX_MEMORY_BYTES=10000
+WARN_THRESHOLD=80  # percent
+ARCHIVE_DAYS=14
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+usage() {
+  cat <<EOF
+${BOLD}🧠 MemoryBox v${VERSION}${NC} — Smart memory management for OpenClaw
+
+${BOLD}Usage:${NC}
+  memorybox <command> [workspace_path]
+
+${BOLD}Commands:${NC}
+  ${GREEN}analyze${NC}    Analyze MEMORY.md structure, find bloat, suggest splits
+  ${GREEN}split${NC}      Interactive: split large MEMORY.md sections into domain files
+  ${GREEN}archive${NC}    Move old daily logs (${ARCHIVE_DAYS}+ days) to archive/
+  ${GREEN}report${NC}     Generate before/after impact report
+  ${GREEN}health${NC}     Quick health check (size, structure, recommendations)
+
+${BOLD}Options:${NC}
+  -w, --workspace PATH    Set workspace path (default: \$OPENCLAW_WORKSPACE or ~/openclaw)
+  -d, --days N            Archive threshold in days (default: ${ARCHIVE_DAYS})
+  -m, --max-bytes N       MEMORY.md size target (default: ${MAX_MEMORY_BYTES})
+  -h, --help              Show this help
+  -v, --version           Show version
+
+${BOLD}Examples:${NC}
+  memorybox analyze
+  memorybox split ~/openclaw
+  memorybox archive --days 7
+  memorybox health
+
+EOF
+}
+
+# Parse global options
+WORKSPACE="$DEFAULT_WORKSPACE"
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -w|--workspace) WORKSPACE="$2"; shift 2 ;;
+    -d|--days) ARCHIVE_DAYS="$2"; shift 2 ;;
+    -m|--max-bytes) MAX_MEMORY_BYTES="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    -v|--version) echo "memorybox v${VERSION}"; exit 0 ;;
+    *) break ;;
+  esac
+done
+
+COMMAND="${1:-help}"
+shift 2>/dev/null || true
+
+# Allow workspace as positional arg
+if [[ -n "${1:-}" && -d "${1:-}" ]]; then
+  WORKSPACE="$1"
+fi
+
+MEMORY_FILE="$WORKSPACE/MEMORY.md"
+MEMORY_DIR="$WORKSPACE/memory"
+
+validate_workspace() {
+  if [[ ! -d "$WORKSPACE" ]]; then
+    echo -e "${RED}Error: Workspace not found: $WORKSPACE${NC}"
+    echo "Set OPENCLAW_WORKSPACE or use -w flag"
+    exit 1
+  fi
+}
+
+# ─────────────────────────────────────────
+# ANALYZE: Deep analysis of MEMORY.md
+# ─────────────────────────────────────────
+cmd_analyze() {
+  validate_workspace
+  echo -e "${BOLD}🔍 MemoryBox Analysis${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${DIM}Workspace: $WORKSPACE${NC}"
+  echo ""
+
+  # MEMORY.md analysis
+  if [[ ! -f "$MEMORY_FILE" ]]; then
+    echo -e "${YELLOW}⚠️  MEMORY.md not found${NC}"
+    return
+  fi
+
+  local total_bytes
+  total_bytes=$(wc -c < "$MEMORY_FILE")
+  local total_lines
+  total_lines=$(wc -l < "$MEMORY_FILE")
+  local pct=$((total_bytes * 100 / MAX_MEMORY_BYTES))
+
+  echo -e "${BOLD}📄 MEMORY.md${NC}"
+  if [[ $total_bytes -gt $MAX_MEMORY_BYTES ]]; then
+    echo -e "   Size: ${RED}${total_bytes} bytes (${pct}% of ${MAX_MEMORY_BYTES} target) 🚨 OVER LIMIT${NC}"
+  elif [[ $pct -gt $WARN_THRESHOLD ]]; then
+    echo -e "   Size: ${YELLOW}${total_bytes} bytes (${pct}% of ${MAX_MEMORY_BYTES} target) ⚠️${NC}"
+  else
+    echo -e "   Size: ${GREEN}${total_bytes} bytes (${pct}% of ${MAX_MEMORY_BYTES} target) ✅${NC}"
+  fi
+  echo "   Lines: $total_lines"
+  echo ""
+
+  # Section analysis
+  echo -e "${BOLD}📊 Sections by Size${NC}"
+  echo ""
+
+  local current_section=""
+  local current_size=0
+  local section_count=0
+  local -a sections=()
+  local -a sizes=()
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      if [[ -n "$current_section" ]]; then
+        sections+=("$current_section")
+        sizes+=("$current_size")
+        section_count=$((section_count + 1))
+      fi
+      current_section="${line#\#\# }"
+      current_size=${#line}
+    else
+      current_size=$((current_size + ${#line} + 1))
+    fi
+  done < "$MEMORY_FILE"
+
+  # Last section
+  if [[ -n "$current_section" ]]; then
+    sections+=("$current_section")
+    sizes+=("$current_size")
+    section_count=$((section_count + 1))
+  fi
+
+  # Sort by size (descending) and display
+  if [[ $section_count -gt 0 ]]; then
+    # Create temp file for sorting
+    local tmpfile
+    tmpfile=$(mktemp)
+    for i in "${!sections[@]}"; do
+      local spct=$((sizes[i] * 100 / total_bytes))
+      echo "${sizes[i]}|${spct}|${sections[i]}" >> "$tmpfile"
+    done
+
+    sort -t'|' -k1 -rn "$tmpfile" | head -15 | while IFS='|' read -r size spct name; do
+      local bar=""
+      local bar_len=$((spct / 3))
+      for ((j=0; j<bar_len; j++)); do bar+="█"; done
+
+      if [[ $size -gt 3000 ]]; then
+        echo -e "   ${RED}${bar}${NC} ${name}"
+        echo -e "   ${DIM}${size} bytes (${spct}%)${NC} → ${YELLOW}suggest: memory/domains/$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g').md${NC}"
+      elif [[ $size -gt 1500 ]]; then
+        echo -e "   ${YELLOW}${bar}${NC} ${name}"
+        echo -e "   ${DIM}${size} bytes (${spct}%)${NC}"
+      else
+        echo -e "   ${GREEN}${bar}${NC} ${name}"
+        echo -e "   ${DIM}${size} bytes (${spct}%)${NC}"
+      fi
+      echo ""
+    done
+
+    rm -f "$tmpfile"
+  fi
+
+  # Memory directory analysis
+  echo -e "${BOLD}📁 Memory Directory${NC}"
+  echo ""
+
+  local daily_count=0
+  local oldest_daily=""
+  local total_files=0
+
+  if [[ -d "$MEMORY_DIR" ]]; then
+    daily_count=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" 2>/dev/null | wc -l | tr -d ' ')
+    oldest_daily=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" 2>/dev/null | sort | head -1 | xargs basename 2>/dev/null || echo "none")
+    total_files=$(find "$MEMORY_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
+
+    echo "   Total files: $total_files"
+    echo "   Daily logs: $daily_count (oldest: ${oldest_daily%.md})"
+
+    for d in domains projects drafts reports incidents archive; do
+      if [[ -d "$MEMORY_DIR/$d" ]]; then
+        local count
+        count=$(find "$MEMORY_DIR/$d" -type f 2>/dev/null | wc -l | tr -d ' ')
+        echo -e "   ${d}/: ${count} files"
+      fi
+    done
+
+    # Find old daily logs
+    local old_count
+    old_count=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" -mtime +${ARCHIVE_DAYS} 2>/dev/null | wc -l | tr -d ' ')
+    if [[ $old_count -gt 0 ]]; then
+      echo ""
+      echo -e "   ${YELLOW}⚠️  ${old_count} daily logs older than ${ARCHIVE_DAYS} days${NC}"
+      echo -e "   ${DIM}Run: memorybox archive${NC}"
+    fi
+  else
+    echo -e "   ${YELLOW}⚠️  memory/ directory not found${NC}"
+  fi
+
+  # Flat file detection (files that should be in subdirectories)
+  echo ""
+  local flat_files=0
+  if [[ -d "$MEMORY_DIR" ]]; then
+    while IFS= read -r f; do
+      local basename
+      basename=$(basename "$f")
+      # Skip daily logs, README, JSON state files
+      if [[ "$basename" =~ ^202[0-9]-[0-9]{2}-[0-9]{2}\.md$ ]] || \
+         [[ "$basename" == "README.md" ]] || \
+         [[ "$basename" =~ \.json$ ]]; then
+        continue
+      fi
+      flat_files=$((flat_files + 1))
+    done < <(find "$MEMORY_DIR" -maxdepth 1 -name "*.md" -not -name "README.md" 2>/dev/null)
+
+    if [[ $flat_files -gt 0 ]]; then
+      echo -e "${YELLOW}⚠️  ${flat_files} non-daily files in memory/ root${NC}"
+      echo -e "${DIM}   These should be in domains/, projects/, drafts/, or reports/${NC}"
+    fi
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# SPLIT: Interactive section splitting
+# ─────────────────────────────────────────
+cmd_split() {
+  validate_workspace
+
+  if [[ ! -f "$MEMORY_FILE" ]]; then
+    echo -e "${RED}Error: MEMORY.md not found${NC}"
+    exit 1
+  fi
+
+  local total_bytes
+  total_bytes=$(wc -c < "$MEMORY_FILE")
+
+  if [[ $total_bytes -le $MAX_MEMORY_BYTES ]]; then
+    echo -e "${GREEN}✅ MEMORY.md is already under ${MAX_MEMORY_BYTES} bytes (${total_bytes} bytes)${NC}"
+    echo "No splitting needed."
+    return
+  fi
+
+  echo -e "${BOLD}✂️  MemoryBox Split${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "MEMORY.md: ${RED}${total_bytes} bytes${NC} (target: ${MAX_MEMORY_BYTES})"
+  echo -e "Need to move: $((total_bytes - MAX_MEMORY_BYTES)) bytes"
+  echo ""
+
+  mkdir -p "$MEMORY_DIR/domains"
+
+  # Parse sections
+  local -a section_names=()
+  local -a section_starts=()
+  local -a section_sizes=()
+  local line_num=0
+  local current_start=0
+  local current_name=""
+  local prev_start=0
+
+  while IFS= read -r line; do
+    line_num=$((line_num + 1))
+    if [[ "$line" =~ ^##[[:space:]] ]]; then
+      if [[ -n "$current_name" ]]; then
+        section_names+=("$current_name")
+        section_starts+=("$current_start")
+      fi
+      current_name="${line#\#\# }"
+      current_start=$line_num
+    fi
+  done < "$MEMORY_FILE"
+  if [[ -n "$current_name" ]]; then
+    section_names+=("$current_name")
+    section_starts+=("$current_start")
+  fi
+
+  # Calculate sizes
+  local total_sections=${#section_names[@]}
+  for ((i=0; i<total_sections; i++)); do
+    local start=${section_starts[i]}
+    local end
+    if [[ $((i + 1)) -lt $total_sections ]]; then
+      end=$((section_starts[i+1] - 1))
+    else
+      end=$line_num
+    fi
+    local content
+    content=$(sed -n "${start},${end}p" "$MEMORY_FILE")
+    section_sizes+=("${#content}")
+  done
+
+  # Show large sections and ask
+  local moved_bytes=0
+  for ((i=0; i<total_sections; i++)); do
+    if [[ ${section_sizes[i]} -gt 2000 ]]; then
+      local slug
+      slug=$(echo "${section_names[i]}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g' | head -c 40)
+      local target_file="$MEMORY_DIR/domains/${slug}.md"
+
+      echo -e "${YELLOW}Section: ${section_names[i]}${NC}"
+      echo -e "Size: ${section_sizes[i]} bytes"
+      echo -e "Target: memory/domains/${slug}.md"
+
+      read -rp "Move this section? [Y/n/s(kip all)] " answer
+      case "$answer" in
+        n|N) echo "Skipped."; echo "" ;;
+        s|S) echo "Skipping remaining."; break ;;
+        *)
+          # Extract section
+          local start=${section_starts[i]}
+          local end
+          if [[ $((i + 1)) -lt $total_sections ]]; then
+            end=$((section_starts[i+1] - 1))
+          else
+            end=$line_num
+          fi
+
+          # Write to domain file
+          {
+            echo "# ${section_names[i]}"
+            echo ""
+            echo "> Separated from MEMORY.md by MemoryBox. Searchable via memory_search."
+            echo ""
+            sed -n "$((start + 1)),${end}p" "$MEMORY_FILE"
+          } > "$target_file"
+
+          echo -e "${GREEN}✅ Written to ${target_file}${NC}"
+          moved_bytes=$((moved_bytes + section_sizes[i]))
+          echo ""
+          ;;
+      esac
+    fi
+  done
+
+  if [[ $moved_bytes -gt 0 ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${GREEN}Moved ${moved_bytes} bytes to domain files${NC}"
+    echo ""
+    echo -e "${YELLOW}⚠️  Important: You need to manually update MEMORY.md${NC}"
+    echo "Replace moved sections with brief summaries + references:"
+    echo '  > Details: memory/domains/<name>.md (memory_search)'
+    echo ""
+    echo "Then verify: memorybox health"
+  fi
+}
+
+# ─────────────────────────────────────────
+# ARCHIVE: Move old daily logs
+# ─────────────────────────────────────────
+cmd_archive() {
+  validate_workspace
+
+  echo -e "${BOLD}🗄️  MemoryBox Archive${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Archiving daily logs older than ${ARCHIVE_DAYS} days"
+  echo ""
+
+  mkdir -p "$MEMORY_DIR/archive"
+
+  local archived=0
+  while IFS= read -r f; do
+    local name
+    name=$(basename "$f")
+    mv "$f" "$MEMORY_DIR/archive/"
+    echo -e "   ${DIM}→ archive/${name}${NC}"
+    archived=$((archived + 1))
+  done < <(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" -mtime +${ARCHIVE_DAYS} 2>/dev/null | sort)
+
+  echo ""
+  if [[ $archived -gt 0 ]]; then
+    echo -e "${GREEN}✅ Archived ${archived} files${NC}"
+  else
+    echo -e "${GREEN}✅ Nothing to archive — all logs are within ${ARCHIVE_DAYS} days${NC}"
+  fi
+}
+
+# ─────────────────────────────────────────
+# REPORT: Before/After impact report
+# ─────────────────────────────────────────
+cmd_report() {
+  validate_workspace
+
+  echo -e "${BOLD}📊 MemoryBox Impact Report${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  local memory_size=0
+  if [[ -f "$MEMORY_FILE" ]]; then
+    memory_size=$(wc -c < "$MEMORY_FILE")
+  fi
+
+  # Count domain files
+  local domain_size=0
+  if [[ -d "$MEMORY_DIR/domains" ]]; then
+    domain_size=$(find "$MEMORY_DIR/domains" -name "*.md" -exec cat {} + 2>/dev/null | wc -c | tr -d ' ')
+  fi
+
+  local total_managed=$((memory_size + domain_size))
+  local sessions_per_day=200  # estimate: 48 crons * ~4 runs + channel messages
+
+  echo -e "${BOLD}Tier 1 (auto-loaded everywhere):${NC}"
+  echo "   MEMORY.md: ${memory_size} bytes"
+  echo ""
+  echo -e "${BOLD}Tier 2 (searched on-demand):${NC}"
+  echo "   domains/: ${domain_size} bytes"
+  echo ""
+  echo -e "${BOLD}Without MemoryBox (flat):${NC}"
+  echo "   Every session loads: ${total_managed} bytes"
+  echo "   Daily: ${total_managed} × ${sessions_per_day} = $((total_managed * sessions_per_day / 1024)) KB/day"
+  echo ""
+  echo -e "${BOLD}With MemoryBox (tiered):${NC}"
+  echo "   Every session loads: ${memory_size} bytes"
+  echo "   Daily: ${memory_size} × ${sessions_per_day} = $((memory_size * sessions_per_day / 1024)) KB/day"
+  echo "   On-demand searches: ~10/day × ${domain_size} bytes = $((domain_size * 10 / 1024)) KB/day"
+  echo ""
+
+  if [[ $total_managed -gt 0 ]]; then
+    local saved=$((total_managed - memory_size))
+    local saved_pct=$((saved * 100 / total_managed))
+    local daily_saved_kb=$(( (saved * sessions_per_day - domain_size * 10) / 1024 ))
+
+    echo -e "${GREEN}💰 Savings:${NC}"
+    echo -e "   Per session: ${saved} bytes saved (${saved_pct}%)"
+    echo -e "   Per day: ~${daily_saved_kb} KB saved"
+
+    # Cost estimate (Claude Sonnet 4.5: $3/MTok input)
+    local monthly_saved_tokens=$((daily_saved_kb * 30 * 1024 / 4))  # ~4 chars per token
+    local monthly_cost_cents=$((monthly_saved_tokens * 3 / 10000))   # $3/MTok in cents
+    echo -e "   Est. monthly: ~\$0.${monthly_cost_cents} saved (Sonnet 4.5 pricing)"
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# HEALTH: Quick health check
+# ─────────────────────────────────────────
+cmd_health() {
+  validate_workspace
+
+  echo -e "${BOLD}🏥 MemoryBox Health Check${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  local score=100
+  local issues=0
+
+  # Check 1: MEMORY.md size
+  if [[ -f "$MEMORY_FILE" ]]; then
+    local size
+    size=$(wc -c < "$MEMORY_FILE")
+    local pct=$((size * 100 / MAX_MEMORY_BYTES))
+    if [[ $size -gt $MAX_MEMORY_BYTES ]]; then
+      echo -e "  ${RED}✗ MEMORY.md over limit: ${size} bytes (${pct}%)${NC}"
+      score=$((score - 30))
+      issues=$((issues + 1))
+    elif [[ $pct -gt $WARN_THRESHOLD ]]; then
+      echo -e "  ${YELLOW}△ MEMORY.md warning: ${size} bytes (${pct}%)${NC}"
+      score=$((score - 10))
+    else
+      echo -e "  ${GREEN}✓ MEMORY.md: ${size} bytes (${pct}%)${NC}"
+    fi
+  else
+    echo -e "  ${YELLOW}△ MEMORY.md not found${NC}"
+    score=$((score - 5))
+  fi
+
+  # Check 2: domains/ directory
+  if [[ -d "$MEMORY_DIR/domains" ]]; then
+    local domain_count
+    domain_count=$(find "$MEMORY_DIR/domains" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+    echo -e "  ${GREEN}✓ domains/: ${domain_count} files${NC}"
+  else
+    echo -e "  ${YELLOW}△ domains/ not found — create with: mkdir -p memory/domains${NC}"
+    score=$((score - 15))
+    issues=$((issues + 1))
+  fi
+
+  # Check 3: Old daily logs
+  if [[ -d "$MEMORY_DIR" ]]; then
+    local old_count
+    old_count=$(find "$MEMORY_DIR" -maxdepth 1 -name "202?-??-??.md" -mtime +${ARCHIVE_DAYS} 2>/dev/null | wc -l | tr -d ' ')
+    if [[ $old_count -gt 0 ]]; then
+      echo -e "  ${YELLOW}△ ${old_count} daily logs need archiving (>${ARCHIVE_DAYS} days)${NC}"
+      score=$((score - 5))
+    else
+      echo -e "  ${GREEN}✓ Daily logs up to date${NC}"
+    fi
+  fi
+
+  # Check 4: Flat files in root
+  local flat_count=0
+  if [[ -d "$MEMORY_DIR" ]]; then
+    while IFS= read -r f; do
+      local bn
+      bn=$(basename "$f")
+      [[ "$bn" =~ ^202[0-9]-[0-9]{2}-[0-9]{2}\.md$ ]] && continue
+      [[ "$bn" == "README.md" ]] && continue
+      flat_count=$((flat_count + 1))
+    done < <(find "$MEMORY_DIR" -maxdepth 1 -name "*.md" -not -name "README.md" 2>/dev/null)
+
+    if [[ $flat_count -gt 0 ]]; then
+      echo -e "  ${YELLOW}△ ${flat_count} unorganized files in memory/ root${NC}"
+      score=$((score - 10))
+      issues=$((issues + 1))
+    else
+      echo -e "  ${GREEN}✓ memory/ root is clean${NC}"
+    fi
+  fi
+
+  # Check 5: archive/ exists
+  if [[ -d "$MEMORY_DIR/archive" ]]; then
+    echo -e "  ${GREEN}✓ archive/ exists${NC}"
+  else
+    echo -e "  ${YELLOW}△ archive/ not found${NC}"
+    score=$((score - 5))
+  fi
+
+  echo ""
+
+  # Score display
+  if [[ $score -ge 90 ]]; then
+    echo -e "  ${GREEN}${BOLD}Health Score: ${score}/100 ✨ Excellent${NC}"
+  elif [[ $score -ge 70 ]]; then
+    echo -e "  ${YELLOW}${BOLD}Health Score: ${score}/100 👍 Good${NC}"
+  elif [[ $score -ge 50 ]]; then
+    echo -e "  ${YELLOW}${BOLD}Health Score: ${score}/100 ⚠️ Needs Work${NC}"
+  else
+    echo -e "  ${RED}${BOLD}Health Score: ${score}/100 🚨 Critical${NC}"
+  fi
+
+  if [[ $issues -gt 0 ]]; then
+    echo ""
+    echo -e "  ${DIM}Run 'memorybox analyze' for detailed recommendations${NC}"
+  fi
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# Command dispatch
+# ─────────────────────────────────────────
+case "$COMMAND" in
+  analyze)  cmd_analyze ;;
+  split)    cmd_split ;;
+  archive)  cmd_archive ;;
+  report)   cmd_report ;;
+  health)   cmd_health ;;
+  help|-h)  usage ;;
+  *)
+    echo -e "${RED}Unknown command: $COMMAND${NC}"
+    echo "Run 'memorybox --help' for usage"
+    exit 1
+    ;;
+esac
