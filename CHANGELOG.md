@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.0] - 2026-02-11
+
+### Fixed
+- **CRITICAL: Doctor crash on empty workspaces** — `find` on non-existent `memory/` caused exit 1 at duplicate/suggestion checks
+- **Help output escape codes** — Color variables using single-quoted `'\033[...]'` didn't render in `cat <<EOF`; switched to `$'\033[...]'` syntax
+- **Health score too lenient** — 491% oversize scored 70/100 "Good"; now scales: -30 (1x), -50 (2x+), -70 (4x+) penalty
+
+### Changed
+- **README completely rewritten** — Added Quick Start section, navigation buttons, version/stars/last-commit badges, Doctor output example, clearer structure
+- **Health scoring** — Proportional penalty for oversized MEMORY.md (Critical at 4x+ over limit)
+- Version bump to 2.1.0
+
+### Added
+- **Navigation buttons** in README (Quick Start, CLI, Results, How It Works, FAQ)
+- **Version badge**, **GitHub stars badge**, **Last commit badge**
+- **Doctor output example** in README for first-time users
+- **Option B: curl install** — single-file download without cloning
+- Guard clauses for all `find` calls on potentially missing directories
+
 ## [2.0.0] - 2026-02-10
 
 ### Changed

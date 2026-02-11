@@ -20,25 +20,70 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup
+        run: chmod +x bin/memorybox
+
       - name: Test init (fresh workspace)
         run: |
-          chmod +x bin/memorybox
           echo "Y" | bin/memorybox init /tmp/test-workspace
           bin/memorybox health /tmp/test-workspace
-      - name: Test analyze
-        run: bin/memorybox analyze /tmp/test-workspace
-      - name: Test report
-        run: bin/memorybox report /tmp/test-workspace
-      - name: Test doctor
-        run: bin/memorybox doctor /tmp/test-workspace
-      - name: Test suggest
-        run: bin/memorybox suggest /tmp/test-workspace
-      - name: Test stale
-        run: bin/memorybox stale /tmp/test-workspace
-      - name: Test archive
-        run: bin/memorybox archive /tmp/test-workspace
-      - name: Verify health score
+
+      - name: Test all commands on initialized workspace
+        run: |
+          bin/memorybox analyze /tmp/test-workspace
+          bin/memorybox report /tmp/test-workspace
+          bin/memorybox doctor /tmp/test-workspace
+          bin/memorybox suggest /tmp/test-workspace
+          bin/memorybox stale /tmp/test-workspace
+          bin/memorybox archive /tmp/test-workspace
+          bin/memorybox dedupe /tmp/test-workspace
+
+      - name: Verify health score 100
         run: |
           output=$(bin/memorybox health /tmp/test-workspace 2>&1)
           echo "$output"
           echo "$output" | grep -q "100/100" || (echo "Health score not 100!" && exit 1)
+
+      - name: Test version and help
+        run: |
+          bin/memorybox --version | grep -q "memorybox v"
+          bin/memorybox --help | grep -q "MemoryBox"
+
+      - name: Test unknown command
+        run: |
+          ! bin/memorybox nonexistent /tmp/test-workspace 2>&1
+
+      # Edge case: empty workspace (no MEMORY.md, no memory/)
+      - name: Test doctor on empty workspace
+        run: |
+          mkdir -p /tmp/empty-workspace
+          bin/memorybox doctor /tmp/empty-workspace
+
+      # Edge case: workspace with oversized MEMORY.md
+      - name: Test oversized MEMORY.md
+        run: |
+          mkdir -p /tmp/big-workspace/memory/archive
+          python3 -c "print('# Big\\n' + 'x' * 50000)" > /tmp/big-workspace/MEMORY.md
+          output=$(bin/memorybox health /tmp/big-workspace 2>&1)
+          echo "$output"
+          echo "$output" | grep -q "Critical" || (echo "Expected Critical for 5x oversize!" && exit 1)
+
+      # Edge case: nonexistent workspace
+      - name: Test nonexistent workspace
+        run: |
+          ! bin/memorybox doctor /tmp/does-not-exist 2>&1
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: chmod +x bin/memorybox
+      - name: Test init + doctor on macOS
+        run: |
+          echo "Y" | bin/memorybox init /tmp/test-workspace
+          bin/memorybox doctor /tmp/test-workspace
+      - name: Test empty workspace on macOS
+        run: |
+          mkdir -p /tmp/empty-workspace
+          bin/memorybox doctor /tmp/empty-workspace

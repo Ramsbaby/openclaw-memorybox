@@ -1,66 +1,77 @@
 # 🧠 OpenClaw MemoryBox
 
-> Install once. Forget about memory management forever.
-> 
+> **Install once. Forget about memory management forever.**
+>
 > Zero dependencies. Works alongside Mem0, Supermemory, QMD — or standalone.
 
 [![CI](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/ci.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://github.com/openclaw/openclaw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
+[![GitHub stars](https://img.shields.io/github/stars/Ramsbaby/openclaw-memorybox?style=social)](https://github.com/Ramsbaby/openclaw-memorybox/stargazers)
+![Last commit](https://img.shields.io/github/last-commit/Ramsbaby/openclaw-memorybox)
 
+<p align="center">
+  <a href="#-quick-start">⚡ Quick Start</a> •
+  <a href="#-cli-commands">💻 CLI</a> •
+  <a href="#-real-results">📊 Results</a> •
+  <a href="#-how-it-works">🔧 How It Works</a> •
+  <a href="#-faq">❓ FAQ</a>
+</p>
 
+---
 
-![MemoryBox Doctor Demo](assets/demo.gif)
+## ⚡ Quick Start
 
-## 30-Second Pitch
-
-Your OpenClaw agent's `MEMORY.md` grows every day. At some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow.
-
-MemoryBox fixes this in 5 minutes:
+**3 commands. 30 seconds. Done.**
 
 ```bash
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
 cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
-
-memorybox doctor ~/openclaw   # diagnose + fix suggestions
-memorybox split ~/openclaw    # interactive: move bloated sections out
 ```
 
-That's it. Your MEMORY.md stays lean. Your agent stays fast. **Move on to things that matter.**
-
-## What This Is (and Isn't)
-
-**MemoryBox is a maintenance tool**, like `df` for your agent's memory.
-
-It doesn't replace your memory system — it keeps it healthy. Think of it as:
-
-| Tool | What it does | Category |
-|------|-------------|----------|
-| **Mem0** | Decides *what* to remember | 🧠 Memory engine |
-| **Supermemory** | Cloud-based persistent recall | 🧠 Memory engine |
-| **QMD** | Local search backend | 🔍 Search engine |
-| **MemoryBox** | Keeps files organized & lean | 🧹 Maintenance tool |
-
-**You can use MemoryBox with all of the above, or with none of them.** It only touches file structure — never configs, never plugins, never internals.
-
-## Origin Story
-
-I run an OpenClaw agent 24/7 — 7 Discord channels, 48 cron jobs. As it learned, `MEMORY.md` ballooned to 20KB+. Every session loaded all of it.
-
-One day, context hit 100%. Compaction corrupted state. I tried to fix the config — and **crashed the gateway**.
-
-That crash led to **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** (auto-recovery in ~30s). But the *root cause* was memory bloat. So I built MemoryBox to prevent it from happening again.
-
-```
-Memory bloat → Context overflow → Gateway crash
-  → Built self-healing (recover from crashes)
-  → Built MemoryBox (prevent the bloat)
-  → Problem solved at both ends.
+**Now diagnose your workspace:**
+```bash
+memorybox doctor ~/openclaw
 ```
 
-## How It Works
+**That's it.** MemoryBox tells you exactly what's wrong and how to fix it.
+
+**Next:** [See real results](#-real-results) • [All commands](#-cli-commands) • [Teach your agent](#-teach-your-agent-the-3-tier-pattern)
+
+---
+
+## 🎬 Demo
+
+![MemoryBox Doctor Demo](assets/demo.gif)
+
+*Full diagnostic in one command: health check → size analysis → duplicates → stale content → suggestions*
+
+---
+
+## 🌟 The Problem
+
+Your OpenClaw agent's `MEMORY.md` grows every day. At some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow.
+
+**The crash chain:**
+```
+Memory bloat → Context overflow → Compaction failure → Gateway crash
+```
+
+MemoryBox prevents this in 5 minutes:
+
+```bash
+memorybox doctor ~/openclaw   # diagnose
+memorybox split ~/openclaw    # fix interactively
+```
+
+Your MEMORY.md stays lean. Your agent stays fast. **Move on to things that matter.**
+
+---
+
+## 🔧 How It Works
 
 MemoryBox applies a simple 3-tier pattern (inspired by [Letta/MemGPT](https://github.com/letta-ai/letta)):
 
@@ -85,7 +96,25 @@ workspace/
 
 **Key insight:** OpenClaw's `memory_search` indexes `memory/**/*.md` recursively. Tier 2 files are automatically searchable — zero config changes.
 
-## CLI Commands
+---
+
+## 📊 Real Results
+
+Tested on a production instance (7 Discord channels, 48 crons, running 24/7):
+
+| Metric | Before | After |
+|--------|--------|-------|
+| MEMORY.md | 20,542 bytes | 3,460 bytes (**-83%**) |
+| Context pressure | 98% (constant compaction) | 7% (comfortable) |
+| Compaction frequency | Multiple per session | Rare |
+| `memory_search` | ✅ Works | ✅ Still works |
+| Setup time | — | **5 minutes** |
+
+> **Honest note:** The 83% reduction applies to MEMORY.md load — roughly 5-15% of total per-session tokens depending on conversation length. But in a 24/7 agent with 48 crons, those savings compound. More importantly, it **prevents the context overflow that crashes your agent** — and that's worth far more than the token savings alone.
+
+---
+
+## 💻 CLI Commands
 
 ```bash
 memorybox doctor [path]    # Full diagnostic — start here
@@ -112,95 +141,125 @@ memorybox -d 7 archive               # Archive logs older than 7 days
 memorybox -m 8000 health             # Custom max target (default: 10KB)
 ```
 
-## Real Results
+---
 
-Tested on a production instance (7 Discord channels, 48 crons, running 24/7):
+## 📦 Installation
 
-| Metric | Before | After |
-|--------|--------|-------|
-| MEMORY.md | 20,542 bytes | 3,460 bytes (**-83%**) |
-| Context pressure | 98% (constant compaction) | 7% (comfortable) |
-| Compaction frequency | Multiple per session | Rare |
-| `memory_search` | ✅ Works | ✅ Still works |
-| Setup time | — | **5 minutes** |
-
-> **Honest note:** The 83% reduction applies to MEMORY.md load — roughly 5-15% of total per-session tokens depending on conversation length. But in a 24/7 agent with 48 crons, those savings compound. More importantly, it **prevents the context overflow that crashes your agent** — and that's worth far more than the token savings alone.
-
-## Quick Start
-
-### 1. Install
+### Option A: Quick Install (recommended)
 
 ```bash
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
-cd openclaw-memorybox
-chmod +x bin/memorybox
+cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ```
 
-### 2. Diagnose
+### Option B: Manual
 
 ```bash
+# Download just the CLI script
+curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox
+chmod +x /usr/local/bin/memorybox
+```
+
+### Verify
+
+```bash
+memorybox --version   # memorybox v2.1.0
 memorybox doctor ~/openclaw
 ```
 
+---
+
+## 🏥 Example: Doctor Output
+
 ```
-🏥 MemoryBox Doctor
+🩺 MemoryBox Doctor — Full Diagnostic
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Workspace: /Users/you/openclaw
+2026-02-11 17:00:00
 
-📄 MEMORY.md: 20,542 bytes (205% of target) 🚨
+[1/5] Health Check
 
-📊 Largest Sections:
-   ████████ Investment Portfolio     4,200 bytes (23%)
-   ██████  Communication Style      3,100 bytes (17%)
-   █████   System Preferences       2,800 bytes (15%)
+    ✗ MEMORY.md over limit: 20,542 bytes (205%) 🚨
+    ✓ domains/: 3 files
+    △ 8 daily logs need archiving (>14 days)
+    ✓ memory/ root is clean
+    ✓ archive/ exists
 
-🔍 Duplicates: 2 found
-⏰ Stale content: 3 sections (60+ days unchanged)
+    Health Score: 40/100 🚨 Critical
 
-💡 Recommendations:
-   1. Split 3 sections to memory/domains/ (-10,100 bytes)
-   2. Remove duplicate "API Keys" block
-   3. Archive 12 daily logs older than 14 days
+[2/5] Size Analysis
 
-Health Score: 35/100 — Needs attention
-```
+  MEMORY.md: 20,542 bytes (205%)
+  domains/: 3,200 bytes
+  Total managed: 23,742 bytes
 
-### 3. Fix
+[3/5] Duplicate Check
 
-```bash
-memorybox split ~/openclaw
-```
+  ⚠️  2 potential duplicate lines
 
-```
-✂️  MemoryBox Split
+[4/5] Stale Content
+
+  ⏰ 1 domain file(s) unchanged for 60+ days
+
+[5/5] Suggestions
+
+  📌 3 section(s) could be split to domains/
+  🗄️  8 daily logs ready for archiving
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MEMORY.md: 20,542 bytes (target: 10,000)
-
-Section: Investment Portfolio (4,200 bytes)
-→ memory/domains/investment-portfolio.md
-Move? [Y/n/skip all] Y
-✅ Moved. MEMORY.md: 16,342 bytes
-
-Section: Communication Style (3,100 bytes)
-→ memory/domains/communication-style.md
-Move? [Y/n/skip all] Y
-✅ Moved. MEMORY.md: 13,242 bytes
-...
 ```
 
-### 4. Verify
+---
 
-```bash
-memorybox health ~/openclaw
+## 🔄 What This Is (and Isn't)
+
+**MemoryBox is a maintenance tool**, like `df` for your agent's memory.
+
+It doesn't replace your memory system — it keeps it healthy.
+
+| Tool | What it does | Category |
+|------|-------------|----------|
+| **Mem0** | Decides *what* to remember | 🧠 Memory engine |
+| **Supermemory** | Cloud-based persistent recall | 🧠 Memory engine |
+| **QMD** | Local search backend | 🔍 Search engine |
+| **MemoryBox** | Keeps files organized & lean | 🧹 Maintenance tool |
+
+**You can use MemoryBox with all of the above, or with none of them.** It only touches file structure — never configs, never plugins, never internals.
+
+---
+
+## 📖 Origin Story
+
+I run an OpenClaw agent 24/7 — 7 Discord channels, 48 cron jobs. As it learned, `MEMORY.md` ballooned to 20KB+. Every session loaded all of it.
+
+One day, context hit 100%. Compaction corrupted state. I tried to fix the config — and **crashed the gateway**.
+
+That crash led to **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** (auto-recovery in ~30s). But the *root cause* was memory bloat. So I built MemoryBox to prevent it from happening again.
+
+```
+Memory bloat → Context overflow → Gateway crash
+  → Built self-healing (recover from crashes)
+  → Built MemoryBox (prevent the bloat)
+  → Problem solved at both ends.
 ```
 
-```
-Health Score: 95/100 ✨ Excellent
+---
+
+## 🤖 Teach Your Agent the 3-Tier Pattern
+
+Add to your `AGENTS.md`:
+
+```markdown
+## Memory Protocol
+- **MEMORY.md** (≤10KB): Core facts only. Loaded everywhere — keep it lean.
+- **memory/domains/*.md**: Detailed reference. Use `memory_search` to find.
+- **memory/archive/**: Old logs. Rarely needed.
+
+When MEMORY.md grows past 8KB, split large sections to domains/.
 ```
 
-### 5. Set It and Forget It (Optional)
-
-Add a weekly cron to keep things clean automatically:
+### Set It and Forget It (Optional Cron)
 
 ```json
 {
@@ -214,20 +273,9 @@ Add a weekly cron to keep things clean automatically:
 }
 ```
 
-## Teach Your Agent the 3-Tier Pattern
+---
 
-Add to your `AGENTS.md`:
-
-```markdown
-## Memory Protocol
-- **MEMORY.md** (≤10KB): Core facts only. Loaded everywhere — keep it lean.
-- **memory/domains/*.md**: Detailed reference. Use `memory_search` to find.
-- **memory/archive/**: Old logs. Rarely needed.
-
-When MEMORY.md grows past 8KB, split large sections to domains/.
-```
-
-## Compatibility
+## ✅ Compatibility
 
 **Works with everything:**
 
@@ -237,7 +285,6 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 | Mem0 | ✅ | Different layer — no conflict |
 | Supermemory | ✅ | Different layer — no conflict |
 | QMD | ✅ | Indexes same files |
-| Cognee | ✅ | Different layer — no conflict |
 | `memory_search` | ✅ | Indexes `memory/**/*.md` recursively |
 | `memory_get` | ✅ | Reads any `memory/` file |
 
@@ -246,7 +293,9 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 - Plugin behavior — no overrides
 - OpenClaw internals — files only
 
-## Companion Project
+---
+
+## 🤝 Companion Project
 
 | Layer | Tool | What It Does |
 |-------|------|-------------|
@@ -255,7 +304,9 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 
 Both zero-dependency, both MIT licensed, both battle-tested on the same production instance.
 
-## FAQ
+---
+
+## ❓ FAQ
 
 **Q: My MEMORY.md is only 5KB. Do I need this?**
 A: Not yet. Bookmark it for when it grows. Or run `memorybox health` to confirm you're fine.
@@ -267,12 +318,14 @@ A: No. It only creates directories and moves content you approve. Backup is auto
 A: Yes. OpenClaw indexes `memory/**/*.md` recursively. [Official docs confirm this.](https://docs.openclaw.ai/concepts/memory)
 
 **Q: I'm using Mem0/Supermemory. Should I also use this?**
-A: Yes — they solve different problems. Mem0 decides *what* to remember. MemoryBox keeps your *file structure* clean so sessions load fast. They work together perfectly.
+A: Yes — they solve different problems. Mem0 decides *what* to remember. MemoryBox keeps your *file structure* clean so sessions load fast.
 
 **Q: Will OpenClaw updates break this?**
 A: Unlikely. This uses standard markdown files in the standard memory directory. OpenClaw's philosophy is "files are source of truth" — that won't change.
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 PRs welcome! Areas for improvement:
 - [ ] Migration script for different workspace layouts
@@ -281,10 +334,18 @@ PRs welcome! Areas for improvement:
 - [ ] Integration tests with memory_search
 - [ ] `memorybox watch` — daemon mode for continuous monitoring
 
-## License
+---
+
+## 📜 License
 
 MIT — Do whatever you want.
 
 ---
 
-**Made by [@ramsbaby](https://github.com/ramsbaby)** — Battle-tested on a production OpenClaw instance running 24/7 with 48 crons and 7 channels.
+<p align="center">
+  <strong>Made with 🦞 by <a href="https://github.com/ramsbaby">@ramsbaby</a></strong>
+</p>
+
+<p align="center">
+  <em>Battle-tested on a production OpenClaw instance running 24/7 with 48 crons and 7 channels.</em>
+</p>
