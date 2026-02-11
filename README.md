@@ -332,7 +332,8 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 | Metric | Total | Unique | Status |
 |--------|-------|--------|--------|
 | ⭐ Stars | 2 | - | Growing |
-| 📦 Clones | **200+** | — | **Real adoption** 🔥 |
+| 📦 Clones | **134** | 84 | **Real adoption** 🔥 |
+| 👀 Views | 14 | 7 | Early stage |
 | 🍴 Forks | 2 | - | 2 days after launch! |
 
 ### Traffic Chart (Last 14 Days)
