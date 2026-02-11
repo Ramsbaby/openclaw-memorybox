@@ -327,6 +327,14 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 ## 📊 Stats & Growth
 
+### Repository Metrics
+
+| Metric | Total | Unique | Status |
+|--------|-------|--------|--------|
+| ⭐ Stars | 2 | - | Growing |
+| 📦 Clones | **200+** | — | **Real adoption** 🔥 |
+| 🍴 Forks | 2 | - | 2 days after launch! |
+
 ### Traffic Chart (Last 14 Days)
 
 ![Traffic Stats](assets/traffic-chart.png)
