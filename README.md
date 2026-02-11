@@ -325,6 +325,16 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 ---
 
+## 📊 Stats & Growth
+
+### Traffic Chart (Last 14 Days)
+
+![Traffic Stats](assets/traffic-chart.png)
+
+*Auto-updated daily via GitHub Actions*
+
+---
+
 ## 🤝 Contributing
 
 PRs welcome! Areas for improvement:
