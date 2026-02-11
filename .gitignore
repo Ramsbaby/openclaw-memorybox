@@ -19,6 +19,7 @@ BOOTSTRAP.md
 # State files
 *.json
 !package.json
+!traffic-stats.json
 
 # Logs
 *.log
