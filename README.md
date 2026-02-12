@@ -361,6 +361,12 @@ MIT — Do whatever you want.
 
 ---
 
+## 📊 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
+
+---
+
 <p align="center">
   <strong>Made with 🦞 by <a href="https://github.com/ramsbaby">@ramsbaby</a></strong>
 </p>
