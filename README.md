@@ -341,12 +341,8 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 | Date | Views | Unique | Clones | Unique |
 |------|-------|--------|--------|--------|
-| 2/7 (Launch) | 12 | 4 | 80 | 45 |
-| 2/8 | 8 | 3 | 45 | 22 |
-| 2/9 | 5 | 2 | 30 | 18 |
-| 2/10 | 7 | 1 | 25 | 12 |
-| 2/11 | 4 | 1 | 15 | 8 |
-| 2/12 | 2 | 0 | 5 | 2 |
+| 2/10 (Launch) | 14 | 7 | 134 | 84 |
+| 2/11 | 24 | 5 | 66 | 31 |
 | **Total** | **38** | **11** | **200** | **107** |
 
 > Stats are updated automatically. Last update: 2026-02-13
