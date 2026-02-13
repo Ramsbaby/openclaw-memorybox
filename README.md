@@ -20,6 +20,14 @@
   <a href="#-faq">❓ FAQ</a>
 </p>
 
+<br/>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/assets/demo.gif" alt="MemoryBox Demo" />
+</p>
+
+<p align="center"><em>Full diagnostic in one command: health check → size analysis → duplicates → stale content → suggestions</em></p>
+
 ---
 
 ## ⚡ Quick Start
@@ -40,14 +48,6 @@ memorybox doctor ~/openclaw
 **That's it.** MemoryBox tells you exactly what's wrong and how to fix it.
 
 **Next:** [See real results](#-real-results) • [All commands](#-cli-commands) • [Teach your agent](#-teach-your-agent-the-3-tier-pattern)
-
----
-
-## 🎬 Demo
-
-![MemoryBox Doctor Demo](https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/assets/demo.gif)
-
-*Full diagnostic in one command: health check → size analysis → duplicates → stale content → suggestions*
 
 ---
 
