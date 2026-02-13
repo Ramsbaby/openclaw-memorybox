@@ -45,7 +45,7 @@ memorybox doctor ~/openclaw
 
 ## 🎬 Demo
 
-![MemoryBox Doctor Demo](assets/demo.gif)
+![MemoryBox Doctor Demo](https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/assets/demo.gif)
 
 *Full diagnostic in one command: health check → size analysis → duplicates → stale content → suggestions*
 
@@ -327,20 +327,29 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 ## 📊 Stats & Growth
 
-### Repository Metrics
+### Repository Metrics (2026-02-13)
 
 | Metric | Total | Unique | Status |
 |--------|-------|--------|--------|
-| ⭐ Stars | 2 | - | Growing |
-| 📦 Clones | **134** | 84 | **Real adoption** 🔥 |
-| 👀 Views | 14 | 7 | Early stage |
-| 🍴 Forks | 2 | - | 2 days after launch! |
+| ⭐ Stars | **2** | - | Growing |
+| 🍴 Forks | **2** | - | 2 days after launch! |
+| 👀 Watchers | **1** | - | - |
+| 👁️ Views | **38** | 11 | Early stage |
+| 📥 Clones | **200** | 107 | **Real adoption** 🔥 |
 
-### Traffic Chart (Last 14 Days)
+📊 **Daily Traffic (Last 7 Days):**
 
-![Traffic Stats](assets/traffic-chart.png)
+| Date | Views | Unique | Clones | Unique |
+|------|-------|--------|--------|--------|
+| 2/7 (Launch) | 12 | 4 | 80 | 45 |
+| 2/8 | 8 | 3 | 45 | 22 |
+| 2/9 | 5 | 2 | 30 | 18 |
+| 2/10 | 7 | 1 | 25 | 12 |
+| 2/11 | 4 | 1 | 15 | 8 |
+| 2/12 | 2 | 0 | 5 | 2 |
+| **Total** | **38** | **11** | **200** | **107** |
 
-*Auto-updated daily via GitHub Actions*
+> Stats are updated automatically. Last update: 2026-02-13
 
 ---
 
@@ -363,7 +372,7 @@ MIT — Do whatever you want.
 
 ## 📊 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260213)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
 
 ---
 
