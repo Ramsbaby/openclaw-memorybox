@@ -396,25 +396,29 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 ## 📊 Stats & Growth
 
-### Repository Metrics (2026-02-13)
+### Repository Metrics (2026-02-17)
 
 | Metric | Total | Unique | Status |
 |--------|-------|--------|--------|
 | ⭐ Stars | **2** | - | Growing |
-| 🍴 Forks | **2** | - | 2 days after launch! |
+| 🍴 Forks | **2** | - | Active |
 | 👀 Watchers | **1** | - | - |
-| 👁️ Views | **38** | 11 | Early stage |
-| 📥 Clones | **200** | 107 | **Real adoption** 🔥 |
+| 👁️ Views | **46** | 18 | Steady |
+| 📥 Clones | **319** | 145 | **Real adoption** 🔥 |
 
-📊 **Daily Traffic (Last 7 Days):**
+📊 **Daily Traffic:**
 
 | Date | Views | Unique | Clones | Unique |
 |------|-------|--------|--------|--------|
 | 2/10 (Launch) | 14 | 7 | 134 | 84 |
 | 2/11 | 24 | 5 | 66 | 31 |
-| **Total** | **38** | **11** | **200** | **107** |
+| 2/12 | 3 | 3 | 47 | 22 |
+| 2/13 | 1 | 1 | 56 | 24 |
+| 2/14 | 3 | 3 | 8 | 4 |
+| 2/15 | 1 | 1 | 8 | 4 |
+| **Total** | **46** | **18** | **319** | **145** |
 
-> Stats are updated automatically. Last update: 2026-02-13
+> Last update: 2026-02-17
 
 ---
 
@@ -437,7 +441,7 @@ MIT — Do whatever you want.
 
 ## 📊 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260213)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260217)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
 
 ---
 
