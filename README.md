@@ -408,7 +408,7 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 | 👁️ Views | **46** | 18 | Early stage |
 | 📥 Clones | **319** | 145 | **Real adoption** 🔥 |
 
-📊 **Daily Traffic (Last 7 Days):**
+📊 **Daily Traffic:**
 
 | Date | Views | Unique | Clones | Unique |
 |------|-------|--------|--------|--------|
@@ -444,7 +444,7 @@ MIT — Do whatever you want.
 
 ## 📊 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260213)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260217)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
 
 ---
 
