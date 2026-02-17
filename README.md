@@ -105,6 +105,8 @@ memorybox split ~/openclaw    # fix interactively
 
 Your MEMORY.md stays lean. Your agent stays fast. **Move on to things that matter.**
 
+> **2026 context:** Personal AI agents running 24/7 locally are [surging](https://github.com/VoltAgent/awesome-openclaw-skills) — subscription fatigue is real, and "own your AI" is the new default. Memory management is now the #1 silent bottleneck. MemoryBox solves it before it crashes you.
+
 ---
 
 ## 🔧 How It Works
@@ -396,15 +398,15 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 ## 📊 Stats & Growth
 
-### Repository Metrics (2026-02-13)
+### Repository Metrics (2026-02-17)
 
 | Metric | Total | Unique | Status |
 |--------|-------|--------|--------|
 | ⭐ Stars | **2** | - | Growing |
 | 🍴 Forks | **2** | - | 2 days after launch! |
-| 👀 Watchers | **1** | - | - |
-| 👁️ Views | **38** | 11 | Early stage |
-| 📥 Clones | **200** | 107 | **Real adoption** 🔥 |
+| 👀 Watchers | **2** | - | - |
+| 👁️ Views | **46** | 18 | Early stage |
+| 📥 Clones | **319** | 145 | **Real adoption** 🔥 |
 
 📊 **Daily Traffic (Last 7 Days):**
 
@@ -412,9 +414,13 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 |------|-------|--------|--------|--------|
 | 2/10 (Launch) | 14 | 7 | 134 | 84 |
 | 2/11 | 24 | 5 | 66 | 31 |
-| **Total** | **38** | **11** | **200** | **107** |
+| 2/12 | 3 | 3 | 47 | 22 |
+| 2/13 | 1 | 1 | 56 | 24 |
+| 2/14 | 3 | 3 | 8 | 4 |
+| 2/15 | 1 | 1 | 8 | 4 |
+| **Total** | **46** | **18** | **319** | **145** |
 
-> Stats are updated automatically. Last update: 2026-02-13
+> Stats are updated automatically. Last update: 2026-02-17
 
 ---
 
@@ -422,10 +428,11 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 
 PRs welcome! Areas for improvement:
 - [ ] Migration script for different workspace layouts
-- [ ] Automated MEMORY.md size monitoring via cron
+- [x] Automated MEMORY.md size monitoring via cron *(see [cron template](#-teach-your-agent-the-3-tier-pattern))*
 - [ ] Domain file templates for common use cases
 - [ ] Integration tests with memory_search
 - [ ] `memorybox watch` — daemon mode for continuous monitoring
+- [ ] Qdrant/local vector search integration for Tier 2 semantic retrieval
 
 ---
 
