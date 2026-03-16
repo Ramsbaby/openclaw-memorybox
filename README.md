@@ -366,14 +366,16 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 
 ---
 
-## 🤝 Companion Project
+## 🌐 OpenClaw Ecosystem
 
-| Layer | Tool | What It Does |
-|-------|------|-------------|
-| **Prevention** | MemoryBox | Keeps memory lean → no context overflow |
-| **Recovery** | **[Self-Healing](https://github.com/Ramsbaby/openclaw-self-healing)** | 4-tier auto-recovery → gateway back in ~30s |
+| Project | Role |
+|---------|------|
+| **[openclaw-memorybox](https://github.com/Ramsbaby/openclaw-memorybox)** ← you are here | Zero-dep memory hygiene CLI |
+| **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** | 4-tier autonomous crash recovery — gateway back in ~30s |
+| **[openclaw-self-evolving](https://github.com/Ramsbaby/openclaw-self-evolving)** | AI agent that proposes its own improvements |
+| **[claude-discord-bridge](https://github.com/Ramsbaby/claude-discord-bridge)** | Full AI company-in-a-box — where all OpenClaw tools run in production |
 
-Both zero-dependency, both MIT licensed, both battle-tested on the same production instance.
+All MIT licensed, all battle-tested on the same 24/7 production instance.
 
 ---
 
@@ -407,20 +409,6 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 | 👀 Watchers | **2** | - | - |
 | 👁️ Views | **46** | 18 | Early stage |
 | 📥 Clones | **319** | 145 | **Real adoption** 🔥 |
-
-📊 **Daily Traffic:**
-
-| Date | Views | Unique | Clones | Unique |
-|------|-------|--------|--------|--------|
-| 2/10 (Launch) | 14 | 7 | 134 | 84 |
-| 2/11 | 24 | 5 | 66 | 31 |
-| 2/12 | 3 | 3 | 47 | 22 |
-| 2/13 | 1 | 1 | 56 | 24 |
-| 2/14 | 3 | 3 | 8 | 4 |
-| 2/15 | 1 | 1 | 8 | 4 |
-| **Total** | **46** | **18** | **319** | **145** |
-
-> Stats are updated automatically. Last update: 2026-02-17
 
 ---
 
