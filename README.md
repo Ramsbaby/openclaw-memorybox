@@ -5,8 +5,9 @@
 > Zero dependencies. Works alongside Mem0, Supermemory, QMD — or standalone.
 
 [![CI](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/ci.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions)
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://github.com/openclaw/openclaw)
+[![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-Compatible-blueviolet)](README.md#-claude-code-compatibility)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
 [![GitHub stars](https://img.shields.io/github/stars/Ramsbaby/openclaw-memorybox?style=social)](https://github.com/Ramsbaby/openclaw-memorybox/stargazers)
@@ -17,6 +18,8 @@
   <a href="#-cli-commands">💻 CLI</a> •
   <a href="#-real-results">📊 Results</a> •
   <a href="#-how-it-works">🔧 How It Works</a> •
+  <a href="#-daemon-mode----memorybox-watch-new-in-v22">🔄 Daemon Mode</a> •
+  <a href="#-claude-code-compatibility">🤖 Claude Code</a> •
   <a href="#-faq">❓ FAQ</a>
 </p>
 
@@ -200,6 +203,13 @@ memorybox report [path]    # Before/after token savings
 memorybox init [path]      # Set up 3-tier directory structure
 ```
 
+**Daemon mode** (v2.2):
+```bash
+bash scripts/memorybox-watch.sh --daemon   # start background health watcher
+bash scripts/memorybox-watch.sh --status   # check watcher status
+bash scripts/memorybox-watch.sh --stop     # stop watcher
+```
+
 **Most users only need two commands:**
 1. `memorybox doctor` — see what's wrong
 2. `memorybox split` — fix it interactively
@@ -210,6 +220,108 @@ memorybox init [path]      # Set up 3-tier directory structure
 memorybox -w ~/my-workspace doctor   # Custom workspace path
 memorybox -d 7 archive               # Archive logs older than 7 days
 memorybox -m 8000 health             # Custom max target (default: 10KB)
+```
+
+---
+
+## 🔄 Daemon Mode — `memorybox watch` (New in v2.2)
+
+Run MemoryBox in the background. Get alerts when your memory health drops below a threshold — **before it crashes your agent**.
+
+```bash
+# Start background daemon (checks every 60s, alerts when score < 80)
+bash scripts/memorybox-watch.sh --daemon
+
+# With push notifications + custom interval
+MEMORYBOX_INTERVAL=120 \
+MEMORYBOX_THRESHOLD=85 \
+MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
+bash scripts/memorybox-watch.sh --daemon
+
+# With Discord webhook
+MEMORYBOX_DISCORD_URL="https://discord.com/api/webhooks/..." \
+bash scripts/memorybox-watch.sh --daemon
+
+# Check status
+bash scripts/memorybox-watch.sh --status
+
+# Stop
+bash scripts/memorybox-watch.sh --stop
+```
+
+### What it does
+
+1. Runs `memorybox health` every N seconds (default: 60)
+2. Score drops below threshold → sends **alert** (ntfy / Discord webhook)
+3. Score recovers above threshold → sends **recovery** notification
+4. Logs all checks to `~/.openclaw/logs/memorybox-watch.log`
+5. State persisted to `/tmp/memorybox-watch-state.json`
+
+### Configuration
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `MEMORYBOX_WORKSPACE` | `~/openclaw` | Workspace path to monitor |
+| `MEMORYBOX_INTERVAL` | `60` | Check interval in seconds |
+| `MEMORYBOX_THRESHOLD` | `80` | Alert when score drops below this |
+| `MEMORYBOX_NTFY_TOPIC` | — | [ntfy.sh](https://ntfy.sh) push topic |
+| `MEMORYBOX_DISCORD_URL` | — | Discord webhook URL |
+| `MEMORYBOX_LOG_DIR` | `~/.openclaw/logs` | Log directory |
+
+### Cron alternative (simpler)
+
+If you just want weekly checks without a running daemon:
+
+```json
+{
+  "name": "Memory Health Watch",
+  "schedule": "0 9 * * *",
+  "prompt": "Run: memorybox health ~/openclaw. If score < 80, run memorybox doctor and report findings."
+}
+```
+
+---
+
+## 🤖 Claude Code Compatibility
+
+MemoryBox is fully compatible with **Claude Code** (`CLAUDE.md` / `AGENTS.md` workflow).
+
+### Add to your `CLAUDE.md` or `AGENTS.md`
+
+```markdown
+## Memory Health Protocol
+
+- Check health: `memorybox health ~/openclaw` (or your workspace path)
+- If score < 80: run `memorybox doctor ~/openclaw` and follow the suggestions
+- NEVER delete files in memory/ directly — use `memorybox archive` instead
+- After restructuring: memory/ is RAG-indexed on the next rag-index run
+- Large MEMORY.md (≥10KB): run `memorybox split` interactively
+```
+
+### Claude Code + Daemon (fully automated)
+
+```bash
+# Start the health watcher before beginning a long Claude Code session
+MEMORYBOX_WORKSPACE=~/.claude \
+MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
+bash /path/to/memorybox-watch.sh --daemon
+
+# It runs in the background while you work.
+# If memory health degrades mid-session, you get a push notification.
+```
+
+### Claude Code + `/run` slash command
+
+If you use a Claude Code Discord bot (like [claude-discord-bridge](https://github.com/Ramsbaby/claude-discord-bridge)), add a cron task:
+
+```json
+{
+  "id": "memory-health",
+  "name": "Memory Health Check",
+  "schedule": "0 9 * * *",
+  "prompt": "Run memorybox health on the workspace. Report score. If < 80, run doctor and post the output.",
+  "discordChannel": "bot-system"
+}
 ```
 
 ---
@@ -235,7 +347,7 @@ chmod +x /usr/local/bin/memorybox
 ### Verify
 
 ```bash
-memorybox --version   # memorybox v2.1.0
+memorybox --version   # memorybox v2.2.0
 memorybox doctor ~/openclaw
 ```
 
@@ -358,6 +470,7 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 | QMD | ✅ | Indexes same files |
 | `memory_search` | ✅ | Indexes `memory/**/*.md` recursively |
 | `memory_get` | ✅ | Reads any `memory/` file |
+| **Claude Code** | ✅ | CLAUDE.md / AGENTS.md friendly |
 
 **Does NOT touch:**
 - `openclaw.json` — no config changes
@@ -396,6 +509,9 @@ A: Yes — they solve different problems. Mem0 decides *what* to remember. Memor
 **Q: Will OpenClaw updates break this?**
 A: Unlikely. This uses standard markdown files in the standard memory directory. OpenClaw's philosophy is "files are source of truth" — that won't change.
 
+**Q: I use Claude Code, not OpenClaw. Does this work?**
+A: Yes. Point `MEMORYBOX_WORKSPACE` at your Claude Code workspace (`~/.claude` or your project dir). The 3-tier pattern applies to any directory with markdown memory files. See [Claude Code Compatibility](#-claude-code-compatibility).
+
 ---
 
 ## 📊 Stats & Growth
@@ -419,7 +535,7 @@ PRs welcome! Areas for improvement:
 - [x] Automated MEMORY.md size monitoring via cron *(see [cron template](#-teach-your-agent-the-3-tier-pattern))*
 - [ ] Domain file templates for common use cases
 - [ ] Integration tests with memory_search
-- [ ] `memorybox watch` — daemon mode for continuous monitoring
+- [x] `memorybox watch` — daemon mode for continuous monitoring *(added in v2.2)*
 - [ ] Qdrant/local vector search integration for Tier 2 semantic retrieval
 
 ---
