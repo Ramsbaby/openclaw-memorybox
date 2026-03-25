@@ -43,6 +43,8 @@
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
 cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
+# or without sudo — add to PATH instead:
+# export PATH="$(pwd)/bin:$PATH"  # add to ~/.bashrc or ~/.zshrc for persistence
 ```
 
 ### Step 2: Diagnose
@@ -64,6 +66,9 @@ memorybox split ~/openclaw    # Interactive: split large sections
 memorybox archive ~/openclaw  # Move old logs to archive/
 ```
 
+
+> 🆕 **v2.2 — Daemon Mode**: `memorybox watch` monitors your memory file in the background (every 60s) and alerts when health score drops below 80. [See Daemon Mode →](#-daemon-mode----memorybox-watch-new-in-v22)
+
 **Next:** [See real results](#-real-results) • [All commands](#-cli-commands) • [Teach your agent](#-teach-your-agent-the-3-tier-pattern)
 
 ---
@@ -78,7 +83,7 @@ Gateway: Crashes from context overflow
 Agent: Slow, unstable
 ```
 
-### After MemoryBox (5 minutes)
+### After MemoryBox (5 minutes, tested on 25KB MEMORY.md)
 ```
 MEMORY.md: 3.5KB (lean)
 Context pressure: 7% (comfortable)
@@ -334,6 +339,8 @@ If you use a Claude Code Discord bot (like [claude-discord-bridge](https://githu
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
 cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
+# or without sudo — add to PATH instead:
+# export PATH="$(pwd)/bin:$PATH"  # add to ~/.bashrc or ~/.zshrc for persistence
 ```
 
 ### Option B: Manual
