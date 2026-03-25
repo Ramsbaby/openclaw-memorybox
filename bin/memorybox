@@ -1,11 +1,11 @@
 #!/bin/bash
 # memorybox — Zero-dependency memory management CLI for OpenClaw
 # Usage: memorybox <command> [workspace_path]
-# Commands: analyze, split, archive, report, health
+# Commands: analyze, split, archive, report, health, search
 
 set -euo pipefail
 
-VERSION="2.2.0"
+VERSION="2.3.0"
 DEFAULT_WORKSPACE="${OPENCLAW_WORKSPACE:-$HOME/openclaw}"
 MAX_MEMORY_BYTES=10000
 WARN_THRESHOLD=80  # percent
@@ -34,6 +34,7 @@ ${BOLD}Commands:${NC}
   ${GREEN}archive${NC}    Move old daily logs (${ARCHIVE_DAYS}+ days) to archive/
   ${GREEN}report${NC}     Generate before/after impact report
   ${GREEN}health${NC}     Quick health check (size, structure, recommendations)
+  ${GREEN}search${NC}     Search memory files for matching content
   ${GREEN}dedupe${NC}     Find duplicate content across memory files
   ${GREEN}stale${NC}      Find outdated/stale content and date references
   ${GREEN}suggest${NC}    Smart suggestions for memory improvement
@@ -52,6 +53,8 @@ ${BOLD}Examples:${NC}
   memorybox split ~/openclaw
   memorybox archive --days 7
   memorybox health
+  memorybox search "API key"
+  memorybox search "git" ~/openclaw
 
 EOF
 }
@@ -72,10 +75,21 @@ done
 COMMAND="${1:-help}"
 shift 2>/dev/null || true
 
-# Allow workspace as positional arg after command
-if [[ -n "${1:-}" && "${1:-}" != -* ]]; then
-  WORKSPACE="$1"
-  shift 2>/dev/null || true
+# search command takes a query string as first arg, optional workspace as second
+if [[ "$COMMAND" == "search" ]]; then
+  SEARCH_QUERY="${1:-}"
+  if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
+    WORKSPACE="$2"
+    shift 2>/dev/null || true
+  elif [[ -n "${1:-}" ]]; then
+    shift 2>/dev/null || true
+  fi
+else
+  # Allow workspace as positional arg after command
+  if [[ -n "${1:-}" && "${1:-}" != -* ]]; then
+    WORKSPACE="$1"
+    shift 2>/dev/null || true
+  fi
 fi
 
 MEMORY_FILE="$WORKSPACE/MEMORY.md"
@@ -569,6 +583,83 @@ cmd_health() {
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ─────────────────────────────────────────
+# SEARCH: Full-text search across memory files
+# ─────────────────────────────────────────
+cmd_search() {
+  validate_workspace
+
+  local query="${SEARCH_QUERY:-}"
+  if [[ -z "$query" ]]; then
+    echo -e "${RED}Error: search requires a query string${NC}"
+    echo "Usage: memorybox search \"<query>\" [workspace_path]"
+    exit 1
+  fi
+
+  echo -e "${BOLD}🔎 MemoryBox Search${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${DIM}Query: ${CYAN}${query}${NC}"
+  echo -e "${DIM}Workspace: $WORKSPACE${NC}"
+  echo ""
+
+  local total_matches=0
+  local context_lines=2
+
+  # Build list of files to search: MEMORY.md + all .md files under memory/
+  local -a search_files=()
+  [[ -f "$MEMORY_FILE" ]] && search_files+=("$MEMORY_FILE")
+  if [[ -d "$MEMORY_DIR" ]]; then
+    while IFS= read -r f; do
+      search_files+=("$f")
+    done < <(find "$MEMORY_DIR" -name "*.md" 2>/dev/null | sort)
+  fi
+
+  if [[ ${#search_files[@]} -eq 0 ]]; then
+    echo -e "  ${YELLOW}⚠️  No memory files found in workspace${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return
+  fi
+
+  for f in "${search_files[@]}"; do
+    # Case-insensitive grep with line numbers
+    local matches
+    matches=$(grep -in "$query" "$f" 2>/dev/null || true)
+    [[ -z "$matches" ]] && continue
+
+    # Display relative path from workspace root
+    local rel_path="${f#$WORKSPACE/}"
+    echo -e "${BOLD}${CYAN}📄 ${rel_path}${NC}"
+
+    # For each matching line, show context
+    while IFS=: read -r linenum matched_line; do
+      local start_line=$(( linenum - context_lines ))
+      [[ $start_line -lt 1 ]] && start_line=1
+      local end_line=$(( linenum + context_lines ))
+
+      echo -e "   ${DIM}─── Line ${linenum} ───${NC}"
+      local cur_line=$start_line
+      while IFS= read -r ctx_line; do
+        if [[ $cur_line -eq $linenum ]]; then
+          # Highlight the matching line
+          echo -e "   ${YELLOW}${cur_line}:${NC} ${ctx_line}"
+        else
+          echo -e "   ${DIM}${cur_line}:${NC} ${ctx_line}"
+        fi
+        cur_line=$((cur_line + 1))
+      done < <(sed -n "${start_line},${end_line}p" "$f" 2>/dev/null)
+      echo ""
+      total_matches=$((total_matches + 1))
+    done <<< "$matches"
+  done
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  if [[ $total_matches -eq 0 ]]; then
+    echo -e "  ${YELLOW}No matches found for: ${query}${NC}"
+  else
+    echo -e "  ${GREEN}Found ${total_matches} match(es) for: ${query}${NC}"
+  fi
 }
 
 # ─────────────────────────────────────────
@@ -1207,7 +1298,7 @@ cmd_doctor() {
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "${DIM}Full commands: analyze, split, dedupe, stale, suggest${NC}"
+  echo -e "${DIM}Full commands: analyze, split, dedupe, stale, suggest, search${NC}"
 }
 
 # ─────────────────────────────────────────
@@ -1219,6 +1310,7 @@ case "$COMMAND" in
   archive)  cmd_archive ;;
   report)   cmd_report ;;
   health)   cmd_health ;;
+  search)   cmd_search ;;
   dedupe)   cmd_dedupe ;;
   stale)    cmd_stale ;;
   suggest)  cmd_suggest ;;
