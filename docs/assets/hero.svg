@@ -1,0 +1,30 @@
+<svg width="800" height="180" viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1f6feb" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#1f6feb"/>
+      <stop offset="70%" stop-color="#2ea043"/>
+      <stop offset="100%" stop-color="#2ea043" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="180" fill="url(#bg)" rx="12"/>
+  <rect width="800" height="180" fill="none" stroke="#30363d" stroke-width="1" rx="12"/>
+  <line x1="0" y1="3" x2="800" y2="3" stroke="url(#accent)" stroke-width="2" rx="12"/>
+  <!-- Icon -->
+  <circle cx="100" cy="90" r="40" fill="#21262d" stroke="#1f6feb" stroke-width="1.5"/>
+  <text x="100" y="96" text-anchor="middle" font-size="22" fill="#58a6ff">&#x1F9E0;</text>
+  <!-- Text -->
+  <text x="165" y="70" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="26" font-weight="800" fill="#e6edf3">openclaw-memorybox</text>
+  <text x="165" y="98" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" fill="#7d8590">Memory hygiene for Claude Code — install once, forget about it</text>
+  <text x="165" y="126" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="11" fill="#3fb950">&#x2713; Zero dependencies</text>
+  <text x="290" y="126" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="11" fill="#58a6ff">&#x2713; Works with Mem0 / Supermemory</text>
+  <text x="520" y="126" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="11" fill="#c084fc">&#x2713; Slash-command native</text>
+  <rect x="165" y="142" width="72" height="20" rx="4" fill="#1a7f37" opacity="0.3"/>
+  <text x="201" y="156" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#3fb950">Claude Code</text>
+  <rect x="247" y="142" width="30" height="20" rx="4" fill="#1f6feb" opacity="0.3"/>
+  <text x="262" y="156" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#58a6ff">MIT</text>
+</svg>
