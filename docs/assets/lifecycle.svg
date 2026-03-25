@@ -20,6 +20,9 @@
       <stop offset="0%" stop-color="#9e6a03"/>
       <stop offset="100%" stop-color="#d29922"/>
     </linearGradient>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7d8590"/>
+    </marker>
   </defs>
 
   <rect width="800" height="420" fill="url(#bg)" rx="12"/>
@@ -38,19 +41,19 @@
 
   <!-- Node: Capture (top-left) -->
   <rect x="60" y="88" width="160" height="64" rx="10" fill="url(#gBlue)" opacity="0.18" stroke="#1f6feb" stroke-width="1"/>
-  <text x="140" y="114" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#58a6ff">&#x1F4E5; Capture</text>
+  <text x="140" y="114" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#58a6ff">Capture</text>
   <text x="140" y="133" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">/memorybox capture</text>
   <text x="140" y="147" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">session end hook</text>
 
   <!-- Node: Inject (top-right) -->
   <rect x="580" y="88" width="160" height="64" rx="10" fill="url(#gGreen)" opacity="0.18" stroke="#2ea043" stroke-width="1"/>
-  <text x="660" y="114" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#3fb950">&#x1F489; Inject</text>
+  <text x="660" y="114" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#3fb950">Inject</text>
   <text x="660" y="133" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">session start hook</text>
   <text x="660" y="147" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">injects relevant context</text>
 
   <!-- Node: Health Check (bottom-left) -->
   <rect x="60" y="290" width="160" height="64" rx="10" fill="url(#gOrange)" opacity="0.18" stroke="#d29922" stroke-width="1"/>
-  <text x="140" y="316" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#e3b341">&#x1F50D; Health Check</text>
+  <text x="140" y="316" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="700" fill="#e3b341">Health Check</text>
   <text x="140" y="335" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">/memorybox health</text>
   <text x="140" y="349" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="10" fill="#7d8590">staleness · drift · count</text>
 
@@ -62,11 +65,6 @@
 
   <!-- Arrows: Capture → Store -->
   <path d="M 220 120 Q 300 120 332 178" stroke="#1f6feb" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
-  <defs>
-    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#7d8590"/>
-    </marker>
-  </defs>
 
   <!-- Arrows: Store → Inject -->
   <path d="M 468 178 Q 500 120 580 120" stroke="#2ea043" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
