@@ -1,25 +1,27 @@
-# 🧠 OpenClaw MemoryBox
+# 🧠 MemoryBox
 
-> **Install once. Forget about memory management forever.**
+> **Memory health CLI for Claude Code, OpenClaw, and any markdown-based AI agent.**
 >
-> Zero dependencies. Works alongside Mem0, Supermemory, QMD — or standalone.
+> Install once. Your agent's memory stays lean forever. Zero dependencies.
 
+[![GitHub stars](https://img.shields.io/github/stars/Ramsbaby/openclaw-memorybox?style=social)](https://github.com/Ramsbaby/openclaw-memorybox/stargazers)
 [![CI](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/ci.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions)
 [![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://github.com/openclaw/openclaw)
 [![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-Compatible-blueviolet)](README.md#-claude-code-compatibility)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
-[![GitHub stars](https://img.shields.io/github/stars/Ramsbaby/openclaw-memorybox?style=social)](https://github.com/Ramsbaby/openclaw-memorybox/stargazers)
 ![Last commit](https://img.shields.io/github/last-commit/Ramsbaby/openclaw-memorybox)
+
+> If this fixed your agent's memory bloat, a ⭐ helps others find it.
 
 <p align="center">
   <a href="#-quick-start">⚡ Quick Start</a> •
+  <a href="#-claude-code-compatibility">🤖 Claude Code</a> •
   <a href="#-cli-commands">💻 CLI</a> •
   <a href="#-real-results">📊 Results</a> •
   <a href="#-how-it-works">🔧 How It Works</a> •
   <a href="#-daemon-mode----memorybox-watch-new-in-v22">🔄 Daemon Mode</a> •
-  <a href="#-claude-code-compatibility">🤖 Claude Code</a> •
   <a href="#-faq">❓ FAQ</a>
 </p>
 
@@ -40,12 +42,20 @@
 ### Step 1: Install
 
 ```bash
+# One-liner install
+curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
+```
+
+<details>
+<summary>Option B: Manual install (git clone)</summary>
+
+```bash
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
 cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
-# or without sudo — add to PATH instead:
-# export PATH="$(pwd)/bin:$PATH"  # add to ~/.bashrc or ~/.zshrc for persistence
 ```
+
+</details>
 
 ### Step 2: Diagnose
 
@@ -66,10 +76,51 @@ memorybox split ~/openclaw    # Interactive: split large sections
 memorybox archive ~/openclaw  # Move old logs to archive/
 ```
 
-
-> 🆕 **v2.2 — Daemon Mode**: `memorybox watch` monitors your memory file in the background (every 60s) and alerts when health score drops below 80. [See Daemon Mode →](#-daemon-mode----memorybox-watch-new-in-v22)
-
 **Next:** [See real results](#-real-results) • [All commands](#-cli-commands) • [Teach your agent](#-teach-your-agent-the-3-tier-pattern)
+
+---
+
+## 🤖 Claude Code Compatibility
+
+MemoryBox is fully compatible with **Claude Code** (`CLAUDE.md` / `AGENTS.md` workflow).
+
+### Add to your `CLAUDE.md` or `AGENTS.md`
+
+```markdown
+## Memory Health Protocol
+
+- Check health: `memorybox health ~/openclaw` (or your workspace path)
+- If score < 80: run `memorybox doctor ~/openclaw` and follow the suggestions
+- NEVER delete files in memory/ directly — use `memorybox archive` instead
+- After restructuring: memory/ is RAG-indexed on the next rag-index run
+- Large MEMORY.md (≥10KB): run `memorybox split` interactively
+```
+
+### Claude Code + Daemon (fully automated)
+
+```bash
+# Start the health watcher before beginning a long Claude Code session
+MEMORYBOX_WORKSPACE=~/.claude \
+MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
+bash /path/to/memorybox-watch.sh --daemon
+
+# It runs in the background while you work.
+# If memory health degrades mid-session, you get a push notification.
+```
+
+### Claude Code + `/run` slash command
+
+If you use a Claude Code Discord bot (like [jarvis](https://github.com/Ramsbaby/jarvis)), add a cron task:
+
+```json
+{
+  "id": "memory-health",
+  "name": "Memory Health Check",
+  "schedule": "0 9 * * *",
+  "prompt": "Run memorybox health on the workspace. Report score. If < 80, run doctor and post the output.",
+  "discordChannel": "bot-system"
+}
+```
 
 ---
 
@@ -83,7 +134,7 @@ Gateway: Crashes from context overflow
 Agent: Slow, unstable
 ```
 
-### After MemoryBox (5 minutes, tested on 25KB MEMORY.md)
+### After MemoryBox (5 minutes)
 ```
 MEMORY.md: 3.5KB (lean)
 Context pressure: 7% (comfortable)
@@ -97,7 +148,7 @@ Agent: Fast, reliable
 
 ## 🌟 The Problem
 
-Your OpenClaw agent's `MEMORY.md` grows every day. At some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow.
+Your AI agent's `MEMORY.md` grows every day. Whether you're running Claude Code, OpenClaw, or any 24/7 agent — at some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow or crashes.
 
 **The crash chain:**
 ```
@@ -287,68 +338,20 @@ If you just want weekly checks without a running daemon:
 
 ---
 
-## 🤖 Claude Code Compatibility
-
-MemoryBox is fully compatible with **Claude Code** (`CLAUDE.md` / `AGENTS.md` workflow).
-
-### Add to your `CLAUDE.md` or `AGENTS.md`
-
-```markdown
-## Memory Health Protocol
-
-- Check health: `memorybox health ~/openclaw` (or your workspace path)
-- If score < 80: run `memorybox doctor ~/openclaw` and follow the suggestions
-- NEVER delete files in memory/ directly — use `memorybox archive` instead
-- After restructuring: memory/ is RAG-indexed on the next rag-index run
-- Large MEMORY.md (≥10KB): run `memorybox split` interactively
-```
-
-### Claude Code + Daemon (fully automated)
-
-```bash
-# Start the health watcher before beginning a long Claude Code session
-MEMORYBOX_WORKSPACE=~/.claude \
-MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
-bash /path/to/memorybox-watch.sh --daemon
-
-# It runs in the background while you work.
-# If memory health degrades mid-session, you get a push notification.
-```
-
-### Claude Code + `/run` slash command
-
-If you use a Claude Code Discord bot (like [claude-discord-bridge](https://github.com/Ramsbaby/claude-discord-bridge)), add a cron task:
-
-```json
-{
-  "id": "memory-health",
-  "name": "Memory Health Check",
-  "schedule": "0 9 * * *",
-  "prompt": "Run memorybox health on the workspace. Report score. If < 80, run doctor and post the output.",
-  "discordChannel": "bot-system"
-}
-```
-
----
-
 ## 📦 Installation
 
 ### Option A: Quick Install (recommended)
 
 ```bash
-git clone https://github.com/Ramsbaby/openclaw-memorybox.git
-cd openclaw-memorybox && chmod +x bin/memorybox
-sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
-# or without sudo — add to PATH instead:
-# export PATH="$(pwd)/bin:$PATH"  # add to ~/.bashrc or ~/.zshrc for persistence
+curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
 ```
 
 ### Option B: Manual
 
 ```bash
-# Download just the CLI script
-curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox
-chmod +x /usr/local/bin/memorybox
+git clone https://github.com/Ramsbaby/openclaw-memorybox.git
+cd openclaw-memorybox && chmod +x bin/memorybox
+sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ```
 
 ### Verify
@@ -493,7 +496,7 @@ When MEMORY.md grows past 8KB, split large sections to domains/.
 | **[openclaw-memorybox](https://github.com/Ramsbaby/openclaw-memorybox)** ← you are here | Zero-dep memory hygiene CLI |
 | **[openclaw-self-healing](https://github.com/Ramsbaby/openclaw-self-healing)** | 4-tier autonomous crash recovery — gateway back in ~30s |
 | **[openclaw-self-evolving](https://github.com/Ramsbaby/openclaw-self-evolving)** | AI agent that proposes its own improvements |
-| **[claude-discord-bridge](https://github.com/Ramsbaby/claude-discord-bridge)** | Full AI company-in-a-box — where all OpenClaw tools run in production |
+| **[jarvis](https://github.com/Ramsbaby/jarvis)** | 24/7 AI ops system using Claude Max — self-healing, RAG, cron |
 
 All MIT licensed, all battle-tested on the same 24/7 production instance.
 
@@ -521,20 +524,6 @@ A: Yes. Point `MEMORYBOX_WORKSPACE` at your Claude Code workspace (`~/.claude` o
 
 ---
 
-## 📊 Stats & Growth
-
-### Repository Metrics (2026-02-17)
-
-| Metric | Total | Unique | Status |
-|--------|-------|--------|--------|
-| ⭐ Stars | **2** | - | Growing |
-| 🍴 Forks | **2** | - | 2 days after launch! |
-| 👀 Watchers | **2** | - | - |
-| 👁️ Views | **46** | 18 | Early stage |
-| 📥 Clones | **319** | 145 | **Real adoption** 🔥 |
-
----
-
 ## 🤝 Contributing
 
 PRs welcome! Areas for improvement:
@@ -555,7 +544,7 @@ MIT — Do whatever you want.
 
 ## 📊 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date&v=20260217)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ramsbaby/openclaw-memorybox&type=Date)](https://star-history.com/#Ramsbaby/openclaw-memorybox&Date)
 
 ---
 
