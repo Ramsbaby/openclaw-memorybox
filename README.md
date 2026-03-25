@@ -16,6 +16,10 @@
 > If this fixed your agent's memory bloat, a ⭐ helps others find it.
 
 <p align="center">
+  <img src="docs/assets/hero.svg" alt="openclaw-memorybox" width="100%">
+</p>
+
+<p align="center">
   <a href="#-quick-start">⚡ Quick Start</a> •
   <a href="#-without-vs-with-memorybox">📊 Without vs With</a> •
   <a href="#-claude-code-compatibility">🤖 Claude Code</a> •
@@ -132,6 +136,10 @@ workspace/
 | **Tier 3** | Manual reference only | ~0 |
 
 **Key insight:** OpenClaw's `memory_search` indexes `memory/**/*.md` recursively. Tier 2 files are automatically searchable — zero config changes needed.
+
+<p align="center">
+  <img src="docs/assets/lifecycle.svg" alt="Memory hygiene lifecycle" width="100%">
+</p>
 
 ---
 
