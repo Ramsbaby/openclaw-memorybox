@@ -6,7 +6,8 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/Ramsbaby/openclaw-memorybox?style=social)](https://github.com/Ramsbaby/openclaw-memorybox/stargazers)
 [![CI](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/ci.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions)
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
+[![Lint](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/lint.yml/badge.svg)](https://github.com/Ramsbaby/openclaw-memorybox/actions/workflows/lint.yml)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/Ramsbaby/openclaw-memorybox/releases)
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-Compatible-blue)](https://github.com/openclaw/openclaw)
 [![Claude Code Compatible](https://img.shields.io/badge/Claude%20Code-Compatible-blueviolet)](README.md#-claude-code-compatibility)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,6 +15,12 @@
 ![Last commit](https://img.shields.io/github/last-commit/Ramsbaby/openclaw-memorybox)
 
 > If this fixed your agent's memory bloat, a ⭐ helps others find it.
+
+## Quick Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/install.sh | bash
+```
 
 <p align="center">
   <img src="docs/assets/hero.svg" alt="openclaw-memorybox" width="100%">
@@ -46,8 +53,7 @@
 
 ```bash
 # 1. Install (one-liner)
-curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox \
-  -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
+curl -fsSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/install.sh | bash
 
 # 2. Diagnose
 memorybox doctor ~/openclaw         # OpenClaw
@@ -60,7 +66,7 @@ memorybox archive ~/openclaw        # move old logs to archive/
 
 **Verify install:**
 ```bash
-memorybox --version   # memorybox v2.2.0
+memorybox --version   # memorybox v2.3.0
 ```
 
 <details>
@@ -168,6 +174,7 @@ memorybox doctor    # uses ~/.claude automatically
 - NEVER delete files in memory/ directly — use `memorybox archive` instead
 - After restructuring: memory/ is RAG-indexed on the next rag-index run
 - Large MEMORY.md (≥10KB): run `memorybox split` interactively
+- Search memory: `memorybox search "<query>" ~/.claude`
 ```
 
 ### Claude Code + Daemon (fully automated)
@@ -180,6 +187,24 @@ bash /path/to/memorybox-watch.sh --daemon
 
 # It runs in the background while you work.
 # If memory health degrades mid-session, you get a push notification.
+```
+
+### Auto-capture at session end (Claude Code hook)
+
+```json
+{
+  "hooks": {
+    "Stop": [{"command": "bash ~/.local/share/memorybox/session-end-hook.sh"}]
+  }
+}
+```
+
+Install the hook:
+```bash
+mkdir -p ~/.local/share/memorybox
+curl -fsSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/scripts/session-end-hook.sh \
+  -o ~/.local/share/memorybox/session-end-hook.sh
+chmod +x ~/.local/share/memorybox/session-end-hook.sh
 ```
 
 ---
@@ -236,16 +261,17 @@ All systems green. No action needed.
 ## 💻 CLI Commands
 
 ```bash
-memorybox doctor [path]    # Full diagnostic — start here
-memorybox analyze [path]   # Section-by-section size breakdown with bar charts
-memorybox split [path]     # Interactive: move large sections to domain files
-memorybox health [path]    # Quick health score (0-100)
-memorybox archive [path]   # Move old daily logs (14+ days) to archive/
-memorybox dedupe [path]    # Find duplicate content across files
-memorybox stale [path]     # Detect outdated content
-memorybox suggest [path]   # Improvement recommendations
-memorybox report [path]    # Before/after token savings
-memorybox init [path]      # Set up 3-tier directory structure
+memorybox doctor [path]           # Full diagnostic — start here
+memorybox analyze [path]          # Section-by-section size breakdown with bar charts
+memorybox split [path]            # Interactive: move large sections to domain files
+memorybox health [path]           # Quick health score (0-100)
+memorybox search "<query>" [path] # Search memory files for matching content
+memorybox archive [path]          # Move old daily logs (14+ days) to archive/
+memorybox dedupe [path]           # Find duplicate content across files
+memorybox stale [path]            # Detect outdated content
+memorybox suggest [path]          # Improvement recommendations
+memorybox report [path]           # Before/after token savings
+memorybox init [path]             # Set up 3-tier directory structure
 ```
 
 **Daemon mode** (v2.2):
@@ -371,13 +397,21 @@ If you just want daily checks without a running daemon:
 
 ## 📦 Installation
 
-### Option A: Quick Install (recommended)
+### Option A: One-line install (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/install.sh | bash
+```
+
+This installs the CLI to `~/.local/bin/memorybox` and the Claude Code skill to `~/.claude/skills/memorybox.md`.
+
+### Option B: CLI only (legacy)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
 ```
 
-### Option B: Manual
+### Option C: Manual
 
 ```bash
 git clone https://github.com/Ramsbaby/openclaw-memorybox.git
@@ -388,7 +422,7 @@ sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ### Verify
 
 ```bash
-memorybox --version   # memorybox v2.2.0
+memorybox --version   # memorybox v2.3.0
 memorybox doctor ~/openclaw
 ```
 
@@ -511,8 +545,8 @@ A: Unlikely. This uses standard markdown files in the standard memory directory.
 **Q: I use Claude Code, not OpenClaw. Does this work?**
 A: Yes. Point `MEMORYBOX_WORKSPACE` at `~/.claude` or your project dir. See [Claude Code Compatibility](#-claude-code-compatibility).
 
-**Q: The version badge says 2.2.0 but the script header says 2.1.0 — which is correct?**
-A: v2.2.0 is the current release. The script header `VERSION` variable will be updated in the next patch.
+**Q: How does `memorybox search` work?**
+A: It searches MEMORY.md and all `memory/**/*.md` files for your query (case-insensitive), showing 2 context lines around each match. Example: `memorybox search "API key" ~/.claude`
 
 ---
 
@@ -524,6 +558,7 @@ PRs welcome! Areas for improvement:
 - [ ] Domain file templates for common use cases
 - [ ] Integration tests with memory_search
 - [x] `memorybox watch` — daemon mode for continuous monitoring *(added in v2.2)*
+- [x] `memorybox search` — full-text search across memory files *(added in v2.3)*
 - [ ] Qdrant/local vector search integration for Tier 2 semantic retrieval
 
 ---
