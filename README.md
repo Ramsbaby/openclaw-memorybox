@@ -17,11 +17,12 @@
 
 <p align="center">
   <a href="#-quick-start">⚡ Quick Start</a> •
+  <a href="#-without-vs-with-memorybox">📊 Without vs With</a> •
   <a href="#-claude-code-compatibility">🤖 Claude Code</a> •
   <a href="#-cli-commands">💻 CLI</a> •
-  <a href="#-real-results">📊 Results</a> •
+  <a href="#-real-results">📈 Results</a> •
   <a href="#-how-it-works">🔧 How It Works</a> •
-  <a href="#-daemon-mode----memorybox-watch-new-in-v22">🔄 Daemon Mode</a> •
+  <a href="#-daemon-mode----memorybox-watch-new-in-v22">🔄 Daemon</a> •
   <a href="#-faq">❓ FAQ</a>
 </p>
 
@@ -37,13 +38,25 @@
 
 ## ⚡ Quick Start
 
-> **Works in 3 commands. 30 seconds total.**
-
-### Step 1: Install
+> **3 commands. 30 seconds.**
 
 ```bash
-# One-liner install
-curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
+# 1. Install (one-liner)
+curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox \
+  -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
+
+# 2. Diagnose
+memorybox doctor ~/openclaw         # OpenClaw
+memorybox doctor ~/.claude          # Claude Code
+
+# 3. Fix (if needed)
+memorybox split ~/openclaw          # interactive: move large sections to domain files
+memorybox archive ~/openclaw        # move old logs to archive/
+```
+
+**Verify install:**
+```bash
+memorybox --version   # memorybox v2.2.0
 ```
 
 <details>
@@ -57,103 +70,30 @@ sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 
 </details>
 
-### Step 2: Diagnose
-
-```bash
-memorybox doctor ~/openclaw
-```
-
-**You'll see:**
-- ✅ What's healthy
-- ⚠️ What needs attention  
-- 🚨 What's critical
-- 📌 Exactly how to fix it
-
-### Step 3: Fix (if needed)
-
-```bash
-memorybox split ~/openclaw    # Interactive: split large sections
-memorybox archive ~/openclaw  # Move old logs to archive/
-```
-
-**Next:** [See real results](#-real-results) • [All commands](#-cli-commands) • [Teach your agent](#-teach-your-agent-the-3-tier-pattern)
-
 ---
 
-## 🤖 Claude Code Compatibility
+## 📊 Without vs With MemoryBox
 
-MemoryBox is fully compatible with **Claude Code** (`CLAUDE.md` / `AGENTS.md` workflow).
+| | Without MemoryBox | With MemoryBox |
+|--|---|---|
+| **MEMORY.md size** | Grows unbounded (20KB+) | Capped at ~3.5KB |
+| **Every session loads** | Everything (all 20KB) | Core facts only (3.5KB) |
+| **Context pressure** | 98% → compaction failures | 7% → comfortable headroom |
+| **Agent crashes** | 2–3/week from context overflow | 0 |
+| **Setup time** | — | 5 minutes, one-time |
+| **Maintenance** | Manual or never | Automated via cron/daemon |
+| **Old logs** | Accumulate in root | Auto-archived after 14 days |
 
-### Add to your `CLAUDE.md` or `AGENTS.md`
-
-```markdown
-## Memory Health Protocol
-
-- Check health: `memorybox health ~/openclaw` (or your workspace path)
-- If score < 80: run `memorybox doctor ~/openclaw` and follow the suggestions
-- NEVER delete files in memory/ directly — use `memorybox archive` instead
-- After restructuring: memory/ is RAG-indexed on the next rag-index run
-- Large MEMORY.md (≥10KB): run `memorybox split` interactively
+**The crash chain MemoryBox prevents:**
 ```
-
-### Claude Code + Daemon (fully automated)
-
-```bash
-# Start the health watcher before beginning a long Claude Code session
-MEMORYBOX_WORKSPACE=~/.claude \
-MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
-bash /path/to/memorybox-watch.sh --daemon
-
-# It runs in the background while you work.
-# If memory health degrades mid-session, you get a push notification.
+Memory bloat → Context overflow → Compaction failure → Gateway crash
 ```
-
-### Claude Code + `/run` slash command
-
-If you use a Claude Code Discord bot (like [jarvis](https://github.com/Ramsbaby/jarvis)), add a cron task:
-
-```json
-{
-  "id": "memory-health",
-  "name": "Memory Health Check",
-  "schedule": "0 9 * * *",
-  "prompt": "Run memorybox health on the workspace. Report score. If < 80, run doctor and post the output.",
-  "discordChannel": "bot-system"
-}
-```
-
----
-
-## 🎯 Before & After
-
-### Before MemoryBox
-```
-MEMORY.md: 20KB+ (bloated)
-Context pressure: 98% (constantly compacting)
-Gateway: Crashes from context overflow
-Agent: Slow, unstable
-```
-
-### After MemoryBox (5 minutes)
-```
-MEMORY.md: 3.5KB (lean)
-Context pressure: 7% (comfortable)
-Gateway: Stable 24/7
-Agent: Fast, reliable
-```
-
-**Bottom line:** Your MEMORY.md drops 80%+, context stays healthy, agent stays fast.
 
 ---
 
 ## 🌟 The Problem
 
 Your AI agent's `MEMORY.md` grows every day. Whether you're running Claude Code, OpenClaw, or any 24/7 agent — at some point it hits 20KB+, gets loaded into **every session**, eats tokens, and eventually causes context overflow or crashes.
-
-**The crash chain:**
-```
-Memory bloat → Context overflow → Compaction failure → Gateway crash
-```
 
 MemoryBox prevents this in 5 minutes:
 
@@ -164,7 +104,7 @@ memorybox split ~/openclaw    # fix interactively
 
 Your MEMORY.md stays lean. Your agent stays fast. **Move on to things that matter.**
 
-> **2026 context:** Personal AI agents running 24/7 locally are [surging](https://github.com/VoltAgent/awesome-openclaw-skills) — subscription fatigue is real, and "own your AI" is the new default. Memory management is now the #1 silent bottleneck. MemoryBox solves it before it crashes you.
+> **2026 context:** Personal AI agents running 24/7 locally are surging — subscription fatigue is real, and "own your AI" is the new default. Memory management is now the #1 silent bottleneck. MemoryBox solves it before it crashes you.
 
 ---
 
@@ -191,50 +131,91 @@ workspace/
 | **Tier 2** | On-demand via `memory_search` | Only when needed |
 | **Tier 3** | Manual reference only | ~0 |
 
-**Key insight:** OpenClaw's `memory_search` indexes `memory/**/*.md` recursively. Tier 2 files are automatically searchable — zero config changes.
+**Key insight:** OpenClaw's `memory_search` indexes `memory/**/*.md` recursively. Tier 2 files are automatically searchable — zero config changes needed.
 
 ---
 
-## 📊 Real Results
+## 🤖 Claude Code Compatibility
+
+MemoryBox works directly with Claude Code's `CLAUDE.md` / `AGENTS.md` workflow.
+
+**Point it at your Claude workspace:**
+```bash
+memorybox doctor ~/.claude
+```
+
+**Or set the workspace once:**
+```bash
+export OPENCLAW_WORKSPACE=~/.claude
+memorybox doctor    # uses ~/.claude automatically
+```
+
+### Add to your `CLAUDE.md` or `AGENTS.md`
+
+```markdown
+## Memory Health Protocol
+
+- Check health: `memorybox health ~/.claude`
+- If score < 80: run `memorybox doctor ~/.claude` and follow the suggestions
+- NEVER delete files in memory/ directly — use `memorybox archive` instead
+- After restructuring: memory/ is RAG-indexed on the next rag-index run
+- Large MEMORY.md (≥10KB): run `memorybox split` interactively
+```
+
+### Claude Code + Daemon (fully automated)
+
+```bash
+# Start the health watcher before beginning a long Claude Code session
+MEMORYBOX_WORKSPACE=~/.claude \
+MEMORYBOX_NTFY_TOPIC=your-ntfy-topic \
+bash /path/to/memorybox-watch.sh --daemon
+
+# It runs in the background while you work.
+# If memory health degrades mid-session, you get a push notification.
+```
+
+---
+
+## 📈 Real Results
 
 Tested on a production instance (7 Discord channels, 48 crons, running 24/7):
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **MEMORY.md size** | 20,542 bytes | 3,460 bytes | **-83%** 🎉 |
+| **MEMORY.md size** | 20,542 bytes | 3,460 bytes | **-83%** |
 | **Context pressure** | 98% (critical) | 7% (healthy) | **-91%** |
 | **Compaction frequency** | Multiple per session | Rare (~weekly) | **10x fewer** |
-| **Gateway crashes** | 2-3/week | **0** | **100% stable** ✅ |
-| **`memory_search`** | ✅ Works | ✅ Still works | No change |
+| **Gateway crashes** | 2-3/week | **0** | **100% stable** |
+| **`memory_search`** | Works | Still works | No change |
 | **Setup time** | — | **5 minutes** | One-time |
 
 ### Real Terminal Output
 
-**Before (Health Check):**
+**Before:**
 ```
 $ memorybox health ~/openclaw
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🏥 Health Score: 28/100 🚨 CRITICAL
 
-MEMORY.md: 20,542 bytes (205%) 🚨
-Daily logs: 15 files (8 need archiving)
-Duplicates: 12 potential matches
-Stale: 3 files unchanged 60+ days
+  ✗ MEMORY.md over limit: 20,542 bytes (205%) 🚨
+  △ 8 daily logs need archiving (>14 days)
+  △ 12 potential duplicate lines
 
 ACTION REQUIRED: Run 'memorybox doctor' for full diagnostic
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**After (5 minutes later):**
+**After (5 minutes of interactive splitting + archiving):**
 ```
 $ memorybox health ~/openclaw
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🏥 Health Score: 92/100 ✅ EXCELLENT
 
-MEMORY.md: 3,460 bytes (35%) ✅
-Daily logs: 7 active, 8 archived ✅
-Duplicates: 0 ✅
-Stale: 0 ✅
+  ✓ MEMORY.md: 3,460 bytes (35%)
+  ✓ domains/: 3 files
+  ✓ Daily logs up to date
+  ✓ memory/ root is clean
+  ✓ archive/ exists
 
 All systems green. No action needed.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -273,9 +254,51 @@ bash scripts/memorybox-watch.sh --stop     # stop watcher
 ### Options
 
 ```bash
-memorybox -w ~/my-workspace doctor   # Custom workspace path
-memorybox -d 7 archive               # Archive logs older than 7 days
-memorybox -m 8000 health             # Custom max target (default: 10KB)
+memorybox -w ~/my-workspace doctor   # custom workspace path
+memorybox -d 7 archive               # archive logs older than 7 days (default: 14)
+memorybox -m 8000 health             # custom max target (default: 10KB)
+```
+
+---
+
+## 🏥 Example: Doctor Output
+
+```
+🩺 MemoryBox Doctor — Full Diagnostic
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Workspace: /Users/you/openclaw
+2026-02-11 17:00:00
+
+[1/5] Health Check
+
+    ✗ MEMORY.md over limit: 20,542 bytes (205%) 🚨
+    ✓ domains/: 3 files
+    △ 8 daily logs need archiving (>14 days)
+    ✓ memory/ root is clean
+    ✓ archive/ exists
+
+    Health Score: 40/100 🚨 Critical
+
+[2/5] Size Analysis
+
+  MEMORY.md: 20,542 bytes (205%)
+  domains/: 3,200 bytes
+  Total managed: 23,742 bytes
+
+[3/5] Duplicate Check
+
+  ⚠️  2 potential duplicate lines
+
+[4/5] Stale Content
+
+  ⏰ 1 domain file(s) unchanged for 60+ days
+
+[5/5] Suggestions
+
+  📌 3 section(s) could be split to domains/
+  🗄️  8 daily logs ready for archiving
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ---
@@ -326,7 +349,7 @@ bash scripts/memorybox-watch.sh --stop
 
 ### Cron alternative (simpler)
 
-If you just want weekly checks without a running daemon:
+If you just want daily checks without a running daemon:
 
 ```json
 {
@@ -359,48 +382,6 @@ sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ```bash
 memorybox --version   # memorybox v2.2.0
 memorybox doctor ~/openclaw
-```
-
----
-
-## 🏥 Example: Doctor Output
-
-```
-🩺 MemoryBox Doctor — Full Diagnostic
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Workspace: /Users/you/openclaw
-2026-02-11 17:00:00
-
-[1/5] Health Check
-
-    ✗ MEMORY.md over limit: 20,542 bytes (205%) 🚨
-    ✓ domains/: 3 files
-    △ 8 daily logs need archiving (>14 days)
-    ✓ memory/ root is clean
-    ✓ archive/ exists
-
-    Health Score: 40/100 🚨 Critical
-
-[2/5] Size Analysis
-
-  MEMORY.md: 20,542 bytes (205%)
-  domains/: 3,200 bytes
-  Total managed: 23,742 bytes
-
-[3/5] Duplicate Check
-
-  ⚠️  2 potential duplicate lines
-
-[4/5] Stale Content
-
-  ⏰ 1 domain file(s) unchanged for 60+ days
-
-[5/5] Suggestions
-
-  📌 3 section(s) could be split to domains/
-  🗄️  8 daily logs ready for archiving
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ---
@@ -511,7 +492,7 @@ A: Not yet. Bookmark it for when it grows. Or run `memorybox health` to confirm 
 A: No. It only creates directories and moves content you approve. Backup is automatic.
 
 **Q: Does `memory_search` find files in subdirectories?**
-A: Yes. OpenClaw indexes `memory/**/*.md` recursively. [Official docs confirm this.](https://docs.openclaw.ai/concepts/memory)
+A: Yes. OpenClaw indexes `memory/**/*.md` recursively.
 
 **Q: I'm using Mem0/Supermemory. Should I also use this?**
 A: Yes — they solve different problems. Mem0 decides *what* to remember. MemoryBox keeps your *file structure* clean so sessions load fast.
@@ -520,7 +501,10 @@ A: Yes — they solve different problems. Mem0 decides *what* to remember. Memor
 A: Unlikely. This uses standard markdown files in the standard memory directory. OpenClaw's philosophy is "files are source of truth" — that won't change.
 
 **Q: I use Claude Code, not OpenClaw. Does this work?**
-A: Yes. Point `MEMORYBOX_WORKSPACE` at your Claude Code workspace (`~/.claude` or your project dir). The 3-tier pattern applies to any directory with markdown memory files. See [Claude Code Compatibility](#-claude-code-compatibility).
+A: Yes. Point `MEMORYBOX_WORKSPACE` at `~/.claude` or your project dir. See [Claude Code Compatibility](#-claude-code-compatibility).
+
+**Q: The version badge says 2.2.0 but the script header says 2.1.0 — which is correct?**
+A: v2.2.0 is the current release. The script header `VERSION` variable will be updated in the next patch.
 
 ---
 
