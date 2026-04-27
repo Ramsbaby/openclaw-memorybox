@@ -1,6 +1,6 @@
 ---
 name: memorybox
-description: Zero-dependency memory maintenance CLI for OpenClaw. Keeps MEMORY.md lean with 3-tier hierarchical organization. Works alongside Mem0, Supermemory, QMD — or standalone. Install once, forget about memory management.
+description: "Diagnoses bloated MEMORY.md files, splits oversized sections into domain-specific files, archives stale daily logs, and deduplicates content using a 3-tier hierarchy (MEMORY.md → domains/ → archive/). Use when MEMORY.md exceeds 10KB, context pressure is high, or the user asks to clean up, organize, or maintain agent memory files. Works alongside Mem0, Supermemory, QMD, or standalone."
 ---
 
 # MemoryBox
@@ -24,14 +24,16 @@ cd openclaw-memorybox && chmod +x bin/memorybox
 sudo ln -sf "$(pwd)/bin/memorybox" /usr/local/bin/memorybox
 ```
 
-## Usage
+## Recommended Workflow
 
+1. Run `memorybox doctor ~/openclaw` — full diagnostic (start here)
+2. Run `memorybox split ~/openclaw` — move flagged sections to domain files
+3. Verify with `memorybox health ~/openclaw` — target score above 80
+4. Run `memorybox archive ~/openclaw` — archive daily logs older than 14 days
+5. Run `memorybox dedupe ~/openclaw` — remove duplicate content
+
+Additional commands:
 ```bash
-memorybox doctor ~/openclaw    # Full diagnostic (start here)
-memorybox split ~/openclaw     # Interactive: move bloated sections to domain files
-memorybox health ~/openclaw    # Quick health score (0-100)
-memorybox archive ~/openclaw   # Archive old daily logs (14+ days)
-memorybox dedupe ~/openclaw    # Find duplicate content
 memorybox stale ~/openclaw     # Detect outdated content
 memorybox analyze ~/openclaw   # Section-by-section size breakdown
 memorybox suggest ~/openclaw   # Improvement recommendations

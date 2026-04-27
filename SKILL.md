@@ -1,27 +1,25 @@
-# SKILL.md — OpenClaw MemoryBox
-
-> Install with: `clawhub install openclaw-memorybox`
-
-## Metadata
-
-```yaml
+---
 name: openclaw-memorybox
+description: "Memory health CLI that diagnoses bloated MEMORY.md files, splits oversized sections into domain files, archives stale daily logs, and runs continuous health monitoring. Use when MEMORY.md exceeds 10KB, context windows overflow from memory bloat, or agent sessions slow down from loading large memory files. Pure bash, zero dependencies."
 version: 2.2.0
-description: Zero-dependency memory hygiene CLI — keeps MEMORY.md lean, prevents context overflow
 author: Ramsbaby
 license: MIT
 tags: [memory, maintenance, cli, devtools, zero-dependency]
-```
+---
 
-## What This Skill Does
+# OpenClaw MemoryBox
 
-Installs the `memorybox` CLI for maintaining AI agent memory health:
+> Install with: `clawhub install openclaw-memorybox`
 
-- **`memorybox doctor`** — Full diagnostic
-- **`memorybox split`** — Interactive: move large sections to domains/
-- **`memorybox health`** — Quick health score (0-100)
-- **`memorybox archive`** — Move old daily logs to archive/
-- **`memorybox watch`** — Background daemon: alerts when health drops
+Memory health CLI for AI agents — diagnoses, splits, archives, and monitors MEMORY.md to prevent context overflow.
+
+## Commands
+
+- **`memorybox doctor`** — Full diagnostic: health score, size analysis, duplicates, stale content
+- **`memorybox split`** — Interactive: move large sections to `memory/domains/`
+- **`memorybox health`** — Quick health score (0–100)
+- **`memorybox archive`** — Move daily logs older than 14 days to `memory/archive/`
+- **`memorybox watch`** — Background daemon: alerts when health drops below threshold
 
 ## Install
 
@@ -32,18 +30,16 @@ clawhub install openclaw-memorybox
 Or manually:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/bin/memorybox \
-  -o /usr/local/bin/memorybox && chmod +x /usr/local/bin/memorybox
+curl -sSL https://raw.githubusercontent.com/Ramsbaby/openclaw-memorybox/main/install.sh | bash
 ```
 
-## Post-install
+## Recommended Workflow
 
-After install, initialize your workspace:
-
-```bash
-memorybox init ~/openclaw   # or your workspace path
-memorybox doctor ~/openclaw # check current health
-```
+1. Run `memorybox init ~/openclaw` to set up the 3-tier directory structure
+2. Run `memorybox doctor ~/openclaw` to get a full diagnostic
+3. Run `memorybox split ~/openclaw` for any flagged sections
+4. Verify with `memorybox health ~/openclaw` — target score above 80
+5. Run `memorybox archive ~/openclaw` to clean up old daily logs
 
 ## Optional: Weekly Health Cron
 
@@ -61,13 +57,8 @@ Add to your OpenClaw tasks.json:
 }
 ```
 
-## Dependencies
-
-None. Zero external dependencies. Pure bash.
-
 ## Compatibility
 
 - macOS 12+ / Linux (bash 3.2+)
-- OpenClaw agents
-- Claude Code (CLAUDE.md / AGENTS.md workflow)
-- Any markdown-based memory system
+- OpenClaw agents, Claude Code, any markdown-based memory system
+- Zero external dependencies — pure bash
