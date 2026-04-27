@@ -633,7 +633,7 @@ cmd_search() {
     echo -e "${BOLD}${CYAN}📄 ${rel_path}${NC}"
 
     # For each matching line, show context
-    while IFS=: read -r linenum matched_line; do
+    while IFS=: read -r linenum _matched_line; do
       local start_line=$(( linenum - context_lines ))
       [[ $start_line -lt 1 ]] && start_line=1
       local end_line=$(( linenum + context_lines ))
