@@ -11,6 +11,20 @@ MAX_MEMORY_BYTES=10000
 WARN_THRESHOLD=80  # percent
 ARCHIVE_DAYS=14
 
+# Resolve this script's real location, following symlink chains.
+# The README recommends installing via `ln -s .../bin/memorybox /usr/local/bin/memorybox`,
+# and $BASH_SOURCE holds the *link* path — so templates/ must be looked up relative to the
+# link target, not the link itself. `readlink -f` is GNU-only, hence the portable loop.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+TEMPLATE_DIR="$(cd -P "$SCRIPT_DIR/.." && pwd)/templates"
+unset _src _dir
+
 # Colors (use $'...' for proper escape code handling)
 RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
@@ -1081,7 +1095,7 @@ cmd_init() {
   # Create MEMORY.md from template if not exists
   if [[ ! -f "$MEMORY_FILE" ]]; then
     local template_dir
-    template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+    template_dir="$TEMPLATE_DIR"
     if [[ -f "$template_dir/MEMORY.md.template" ]]; then
       cp "$template_dir/MEMORY.md.template" "$MEMORY_FILE"
       echo -e "  ${GREEN}+${NC} MEMORY.md (from template)"
@@ -1119,12 +1133,15 @@ TMPL
     local target="$MEMORY_DIR/domains/${domain}.md"
     if [[ ! -f "$target" ]]; then
       local template_dir
-      template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+      template_dir="$TEMPLATE_DIR"
       local tpl="$template_dir/memory/domains/${domain}.md.template"
       if [[ -f "$tpl" ]]; then
         cp "$tpl" "$target"
       else
-        echo "# ${domain^}" > "$target"
+        # Capitalize first letter. ${var^} is bash 4+; macOS ships bash 3.2, so use tr.
+        local domain_title
+        domain_title="$(printf '%s' "${domain:0:1}" | tr '[:lower:]' '[:upper:]')${domain:1}"
+        echo "# ${domain_title}" > "$target"
         echo "" >> "$target"
         echo "> Searchable via memory_search." >> "$target"
       fi
@@ -1138,7 +1155,7 @@ TMPL
   # Create memory README
   if [[ ! -f "$MEMORY_DIR/README.md" ]]; then
     local template_dir
-    template_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
+    template_dir="$TEMPLATE_DIR"
     if [[ -f "$template_dir/memory/README.md" ]]; then
       cp "$template_dir/memory/README.md" "$MEMORY_DIR/README.md"
     fi
