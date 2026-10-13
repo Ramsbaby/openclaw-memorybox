@@ -1,3 +1,5 @@
+> **Status (2026-10-13):** not actively maintained. Last updated 2026-07-25; not re-verified against OpenClaw 2.0 (2026.9+) or current Claude Code. Issues are read, but replies may be slow.
+
 # 🧠 MemoryBox
 
 > **Memory health CLI for Claude Code, OpenClaw, and any markdown-based AI agent.**
